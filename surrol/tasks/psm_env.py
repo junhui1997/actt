@@ -90,6 +90,7 @@ class PsmEnv(SurRoLGoalEnv):
     def compute_reward(self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info):
         """ All sparse reward.
         The reward is 0 or -1.
+        这里的reward是0和-1
         """
         # d = goal_distance(achieved_goal, desired_goal)
         # return - (d > self.distance_threshold).astype(np.float32)
@@ -178,7 +179,7 @@ class PsmEnv(SurRoLGoalEnv):
         observation = np.concatenate([
             robot_state, object_pos.ravel(), object_rel_pos.ravel(),
             waypoint_pos.ravel(), waypoint_rot.ravel()  # achieved_goal.copy(),
-        ])
+        ])  # ravel多维数组转化为一维数组
         obs = {
             'observation': observation.copy(),
             'achieved_goal': achieved_goal.copy(),

@@ -13,10 +13,12 @@ import time
 from torchvision import transforms
 
 from constants import FPS
-from constants import PUPPET_GRIPPER_JOINT_OPEN
+from constants import PUPPET_GRIPPER_JOINT_OPEN , surgical_tasks
 from utils import load_data # data functions
 from utils import sample_box_pose, sample_insertion_pose # robot functions
 from utils import compute_dict_mean, set_seed, detach_dict, calibrate_linear_vel, postprocess_base_action # helper functions
+from utils import parse_ts  # for surgical robot
+import gym                  # for surgical robot
 from policy import ACTPolicy, CNNMLPPolicy, DiffusionPolicy
 from visualize_episodes import save_videos
 
@@ -55,8 +57,8 @@ def main(args):
     action_dim = args['action_dim']  # action_dim by me
 
     # get task parameters
-    is_sim = task_name[:4] == 'sim_'
-    if is_sim or task_name == 'all':
+    is_sim = task_name[:4] == 'sim_' or task_name in surgical_tasks
+    if is_sim or task_name == 'all' or task_name in surgical_tasks:
         from constants import SIM_TASK_CONFIGS
         task_config = SIM_TASK_CONFIGS[task_name]
     else:
@@ -140,6 +142,7 @@ def main(args):
         'task_name': task_name,
         'seed': args['seed'],
         'temporal_agg': args['temporal_agg'],
+        'is_surgical': args['is_surgical'],
         'camera_names': camera_names,
         'real_robot': not is_sim,
         'load_pretrain': args['load_pretrain'],
@@ -244,6 +247,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
     max_timesteps = config['episode_len']
     task_name = config['task_name']
     temporal_agg = config['temporal_agg']
+    is_surgical = config['is_surgical']
     onscreen_cam = 'angle'
     vq = config['policy_config']['vq']
     actuator_config = config['actuator_config']
@@ -309,8 +313,12 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
         env_max_reward = 0
     else:
         from sim_env import make_sim_env
-        env = make_sim_env(task_name)
-        env_max_reward = env.task.max_reward
+        if is_surgical:
+            env = gym.make(task_name)
+            env_max_reward = 0
+        else:
+            env = make_sim_env(task_name)
+            env_max_reward = env.task.max_reward
 
     query_frequency = policy_config['num_queries']
     if temporal_agg:
@@ -342,11 +350,16 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
             BOX_POSE[0] = np.concatenate(sample_insertion_pose()) # used in sim reset
 
         ts = env.reset()
-
+        if is_surgical:
+            ts = parse_ts(ts, env)
         ### onscreen render
         if onscreen_render:
             ax = plt.subplot()
-            plt_img = ax.imshow(env._physics.render(height=480, width=640, camera_id=onscreen_cam))
+            if is_surgical:
+                ecm_img, mask = env.ecm.render_image(640, 480)
+                plt_img = ax.imshow(ecm_img)
+            else:
+                plt_img = ax.imshow(env._physics.render(height=480, width=640, camera_id=onscreen_cam))
             plt.ion()
 
 
@@ -371,13 +384,20 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
                 time1 = time.time()
                 ### update onscreen render and wait for DT
                 if onscreen_render:
-                    image = env._physics.render(height=480, width=640, camera_id=onscreen_cam)
+                    if is_surgical:
+                        image, mask = env.ecm.render_image(640, 480)
+                    else:
+                        image = env._physics.render(height=480, width=640, camera_id=onscreen_cam)
                     plt_img.set_data(image)
                     plt.pause(DT)
 
                 # collect data
                 if collect_video:
-                    video_writer.append_data(env._physics.render(height=480, width=640, camera_id=onscreen_cam))
+                    if is_surgical:
+                        image, mask = env.ecm.render_image(640, 480)
+                    else:
+                        image = env._physics.render(height=480, width=640, camera_id=onscreen_cam)
+                    video_writer.append_data(image)
 
                 ### process previous timestep to get qpos and image_list
                 time2 = time.time()
@@ -482,6 +502,8 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
                     ts = env.step(target_qpos, base_action)
                 else:
                     ts = env.step(target_qpos)
+                    if is_surgical:
+                        ts = parse_ts(ts, env, target_qpos)
                 # print('step env: ', time.time() - time5)
 
                 ### for visualization
@@ -696,5 +718,6 @@ if __name__ == '__main__':
     # for all
     parser.add_argument('--action_dim', action='store', type=int, default=16, help='action dim', required=False)
     parser.add_argument('--state_dim', action='store', type=int, default=14, help='state dim', required=False)
+    parser.add_argument('--is_surgical', action='store_true', help='if is surgical or not ', required=False)
 
     main(vars(parser.parse_args()))

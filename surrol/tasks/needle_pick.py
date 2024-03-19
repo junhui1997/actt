@@ -27,6 +27,7 @@ class NeedlePick(PsmEnv):
     # TODO: grasp is sometimes not stable; check how to fix it
     def __init__(self, render_mode=None, cid = -1):
         super(NeedlePick, self).__init__(render_mode, cid)
+        # 调整render的视角 # 没有调用这个，改了数字也没有反应
         self._view_matrix = p.computeViewMatrixFromYawPitchRoll(
             cameraTargetPosition=(-0.05 * self.SCALING, 0, 0.375 * self.SCALING),
             distance=1.81 * self.SCALING,
@@ -35,6 +36,7 @@ class NeedlePick(PsmEnv):
             roll=0,
             upAxisIndex=2
         )
+
 
 
     def _env_setup(self):
@@ -89,6 +91,7 @@ class NeedlePick(PsmEnv):
 
     def _sample_goal(self) -> np.ndarray:
         """ Samples a new goal and returns it.
+            goal是个随机的三维坐标
         """
         workspace_limits = self.workspace_limits1
         goal = np.array([workspace_limits[0].mean() + 0.01 * np.random.randn() * self.SCALING,
@@ -98,6 +101,8 @@ class NeedlePick(PsmEnv):
 
     def _sample_goal_callback(self):
         """ Define waypoints
+         生成策略轨迹
+         waypoint在这里修改
         """
         super()._sample_goal_callback()
         self._waypoints = [None, None, None, None]  # four waypoints
@@ -141,6 +146,7 @@ class NeedlePick(PsmEnv):
     def get_oracle_action(self, obs) -> np.ndarray:
         """
         Define a human expert strategy
+        waypoint在这里利用
         """
         # four waypoints executed in sequential order
         action = np.zeros(5)
@@ -148,13 +154,15 @@ class NeedlePick(PsmEnv):
         for i, waypoint in enumerate(self._waypoints):
             if waypoint is None:
                 continue
-            delta_pos = (waypoint[:3] - obs['observation'][:3]) / 0.01 / self.SCALING
-            delta_yaw = (waypoint[3] - obs['observation'][5]).clip(-0.4, 0.4)
+            delta_pos = (waypoint[:3] - obs['observation'][:3]) / 0.01 / self.SCALING  # robot state里面的位置
+            delta_yaw = (waypoint[3] - obs['observation'][5]).clip(-0.4, 0.4)   # z方向的欧拉角
+            # 避免单次移动距离过大，某个方向移动距离超过一之后，拿该方向数值对其他方向进行放缩
             if np.abs(delta_pos).max() > 1:
                 delta_pos /= np.abs(delta_pos).max()
-            scale_factor = 0.4
+            scale_factor = 0.1 # 控制整体移动速度， 原本0.4
             delta_pos *= scale_factor
             action = np.array([delta_pos[0], delta_pos[1], delta_pos[2], delta_yaw, waypoint[4]])
+            # 判断一下已经基本移动到这个点了，将该点置为None
             if np.linalg.norm(delta_pos) * 0.01 / scale_factor < 1e-4 and np.abs(delta_yaw) < 1e-2:
                 self._waypoints[i] = None
             break
@@ -177,3 +185,4 @@ if __name__ == "__main__":
     env.test()
     env.close()
     time.sleep(2)
+

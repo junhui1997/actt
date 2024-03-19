@@ -8,7 +8,7 @@ import cv2
 from time import time
 from torch.utils.data import TensorDataset, DataLoader
 import torchvision.transforms as transforms
-
+from collections import OrderedDict
 import IPython
 
 e = IPython.embed
@@ -77,7 +77,7 @@ class EpisodicDataset(torch.utils.data.Dataset):
             episode_len = original_action_shape[0]
             # get observation at start_ts only # [dim]获取当前时刻的obs
             qpos = root['/observations/qpos'][start_ts]
-            qvel = root['/observations/qvel'][start_ts]
+            # qvel = root['/observations/qvel'][start_ts]
             image_dict = dict()
             for cam_name in self.camera_names:
                 image_dict[cam_name] = root[f'/observations/images/{cam_name}'][start_ts]
@@ -268,7 +268,7 @@ def get_norm_stats(dataset_path_list):
         try:
             with h5py.File(dataset_path, 'r') as root:
                 qpos = root['/observations/qpos'][()]
-                qvel = root['/observations/qvel'][()]
+                # qvel = root['/observations/qvel'][()]  # to_modify
                 if '/base_action' in root:
                     base_action = root['/base_action'][()]
                     base_action = preprocess_base_action(base_action)
@@ -513,3 +513,29 @@ def detach_dict(d):
 def set_seed(seed):
     torch.manual_seed(seed)
     np.random.seed(seed)
+
+class time_step:
+    def __init__(self, observation, reward):
+        self.observation = observation
+        self.reward = reward
+
+def parse_ts(ts, env, action=None):
+    new_ts = time_step(OrderedDict(), -1)
+    # reset是时候
+    if isinstance(ts, dict):
+        new_ts.reward = -1
+        new_ts.observation['qpos'] = ts['observation'][:7]
+    else:
+        new_ts.reward = ts[1]
+        new_ts.observation['qpos'] = ts[0]['observation'][:7]  # 对应robot state：位置+欧拉角+夹爪
+        new_ts.observation['action'] = action  #.tolist()
+    ecm_img, mask = env.ecm.render_image(640, 480)  # 注意这里是反着写的
+    front_img, front_mask = env.ecm.render_image_front(640, 480)  # 注意这里是反着写的
+    top_img, top_mask = env.ecm.render_image_top(640, 480)  # 注意这里是反着写的
+    # human_img = env.render('rgb_array')
+    new_ts.observation['images'] = {}
+    new_ts.observation['images']['ecm'] = ecm_img
+    new_ts.observation['images']['top'] = top_img
+    new_ts.observation['images']['front'] = front_img
+    # new_ts.observation['images']['human'] = human_img
+    return new_ts

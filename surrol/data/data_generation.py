@@ -31,17 +31,18 @@ masks = []
 
 def main():
     env = gym.make(args.env, render_mode='human')  # 'human'
+    # env = gym.make(args.env)
     num_itr = 100 if not args.video else 1
     cnt = 0
     init_state_space = 'random'
-    env.reset()
+    env.reset()  # reset这里可以设定seed
     print("Reset!")
     init_time = time.time()
 
     if args.steps is None:
         args.steps = env._max_episode_steps
 
-    print()
+    a = env.ACTION_MODE  #这里会生成一个嵌套的env，里面的元素都可以读到
     while len(actions) < num_itr:
         obs = env.reset()
         print("ITERATION NUMBER ", len(actions))
@@ -93,20 +94,21 @@ def goToGoal(env, last_obs):
     episode_obs.append(last_obs)
 
     obs, success = last_obs, False
-
+    counter = 0
     while time_step < min(env._max_episode_steps, args.steps):
         action = env.get_oracle_action(obs)
+        # print(action) # action是一直有的
         # 每个timesteprender一次
         if args.video:
             # img, mask = env.render('img_array')
             # img = env.render('rgb_array')  # 这个是使用全局视角的视频
             # img = env.render('human')
             img, mask = env.ecm.render_image(640, 480)
-            images.append(mask)
+            images.append(img)
             # masks.append(mask)
-        a = env.step(action)
-        obs, reward, done, info = env.step(action)
+        obs, reward, done, info = env.step(action)  # dict. float, bool, dic
         # print(f" -> obs: {obs}, reward: {reward}, done: {done}, info: {info}.")
+        print(f" -> counter: {counter} reward: {reward}, done: {done}, info: {info}.")
         time_step += 1
 
         # not success为了只返回一个结果
@@ -119,6 +121,8 @@ def goToGoal(env, last_obs):
         episode_obs.append(obs)
         # TODO ！！！
         time.sleep(0.01)
+        counter+=1
+        # print(counter)
     print("Episode time used: {:.2f}s\n".format(time.time() - episode_init_time))
 
     if success:

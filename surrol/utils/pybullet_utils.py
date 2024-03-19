@@ -859,8 +859,8 @@ def render_image(width, height, view_matrix, proj_matrix, shadow=1):
     rgb_array = np.reshape(rgb_array, (height, width, 4))
     rgb_array = rgb_array[:, :, :3]
 
-    near = 0.2
-    far = 1
+    near = 0.01
+    far = 10
     depth = np.reshape(depth, (height, width))
     depth = far * near / (far - (far - near) * depth)
     return rgb_array, depth

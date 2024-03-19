@@ -61,7 +61,7 @@ class DETRVAE(nn.Module):
             self.backbones = nn.ModuleList(backbones)
             self.input_proj_robot_state = nn.Linear(state_dim, hidden_dim)
         else:
-            # input_dim = 14 + 7 # robot_state + env_state # env_state是指low_dim的情况，这里也没有做额外的优化
+            # input_dim = 14 + 7 # robot_state + env_state # env_state是指low_dim的情况，这里也没有做额外的优化 #q应该没进这个分支
             self.input_proj_robot_state = nn.Linear(state_dim, hidden_dim)
             self.input_proj_env_state = nn.Linear(7, hidden_dim)
             self.pos = torch.nn.Embedding(2, hidden_dim)

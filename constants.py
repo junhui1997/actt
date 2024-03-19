@@ -1,11 +1,12 @@
 import pathlib
 import os
 
+surgical_tasks = ['NeedlePick-v0']
 ### Task parameters
 DATA_DIR = '/home/zfu/interbotix_ws/src/act/data' if os.getlogin() == 'zfu' else '/media/u/新加卷/all_code/act-plus-plus/dataset_m'
 SIM_TASK_CONFIGS = {
     'sim_transfer_cube_scripted':{
-        'dataset_dir': DATA_DIR + '/sim_transfer_cube_scripted_my_generate',   # '/sim_transfer_cube_scripted'
+        'dataset_dir': DATA_DIR + '/sim_transfer_cube_scripted',   # '/sim_transfer_cube_scripted'
         'num_episodes': 50,
         'episode_len': 400,
         'camera_names': ['top']  #, 'left_wrist', 'right_wrist' # 修改这里
@@ -58,6 +59,13 @@ SIM_TASK_CONFIGS = {
         'num_episodes': 50,
         'episode_len': 400,
         'camera_names': ['angle', 'top']  #, 'left_wrist', 'right_wrist' # 修改这里
+    },
+    
+    'NeedlePick-v0':{
+        'dataset_dir': DATA_DIR + '/NeedlePick-v0-new',
+        'num_episodes': 50,
+        'episode_len': 400,  # modify this
+        'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
     },
 
 }

@@ -160,10 +160,21 @@ class Ecm(Arm):
         pos_tip = get_link_pose(self.body, self.TIP_LINK_INDEX)[0]
         mat_eef = np.array(p.getMatrixFromQuaternion(orn_eef)).reshape((3, 3))
 
+
+        # [3.6980953216552734, 9.531275074747825e-12, 4.602044105529785] eef
+        # [3.6416311264038086, 9.616766584452652e-12, 4.519510746002197]
+        pos_tip[0] -= 0.7  # 调整位置，ecm应该是通道上面那个尖尖
+        pos_eef[0] -= 0.5  # x方向同步视角
+        pos_eef[1] = pos_tip[1]  # y方向同步视角 # 不用改动
+        pos_tip[2] -= 0.6  # 下移相机
+        pos_eef[2] -= 0.4  # z方向同步
+
+
+
         # TODO: need to check the up vector
         self.view_matrix = p.computeViewMatrix(cameraEyePosition=pos_eef,
                                                cameraTargetPosition=pos_tip,
-                                               cameraUpVector=mat_eef[:, 0])
+                                               cameraUpVector=mat_eef[:, 0])  # upvector 只是决定哪一面向上
         self.proj_matrix = p.computeProjectionMatrixFOV(fov=FoV,
                                                         aspect=float(width) / height,
                                                         nearVal=0.01,
@@ -176,6 +187,60 @@ class Ecm(Arm):
         # modify here,原本返回了 zero
         return rgb_array, mask
 
+    def render_image_front(self, width=RENDER_WIDTH, height=RENDER_HEIGHT):
+        pos_eef, orn_eef = get_link_pose(self.body, self.EEF_LINK_INDEX)
+        pos_tip = get_link_pose(self.body, self.TIP_LINK_INDEX)[0]
+        mat_eef = np.array(p.getMatrixFromQuaternion(orn_eef)).reshape((3, 3))
+
+        pos_tip[0] -= 0.6  # 调整位置，ecm应该是通道上面那个尖尖
+        pos_eef[0] -= 0.4  # x方向形成视角eef数值更大
+        pos_eef[1] = pos_tip[1]  # y方向同步视角 # 不用改动
+        pos_tip[2] -= 0.8  # 下移相机
+        pos_eef[2] -= 0.8  # z方向同步
+
+        # TODO: need to check the up vector
+        self.view_matrix = p.computeViewMatrix(cameraEyePosition=pos_eef,
+                                               cameraTargetPosition=pos_tip,
+                                               cameraUpVector=mat_eef[:, 0])  # upvector 只是决定哪一面向上
+        self.proj_matrix = p.computeProjectionMatrixFOV(fov=FoV,
+                                                        aspect=float(width) / height,
+                                                        nearVal=0.01,
+                                                        farVal=10.0)
+
+        rgb_array, mask = render_image(width, height,
+                                       self.view_matrix, self.proj_matrix)
+        # rgb_array = np.zeros((256, 256, 3))
+        # mask = np.zeros((256, 256, 1))
+        # modify here,原本返回了 zero
+        return rgb_array, mask
+
+    def render_image_top(self, width=RENDER_WIDTH, height=RENDER_HEIGHT):
+        pos_eef, orn_eef = get_link_pose(self.body, self.EEF_LINK_INDEX)
+        pos_tip = get_link_pose(self.body, self.TIP_LINK_INDEX)[0]
+        mat_eef = np.array(p.getMatrixFromQuaternion(orn_eef)).reshape((3, 3))
+
+
+        pos_tip[0] -= 0.9  # 调整位置，ecm应该是通道上面那个尖尖
+        pos_eef[0] = pos_tip[0]  # x方向同步视角
+        pos_eef[1] = pos_tip[1]  # y方向同步视角
+        pos_tip[2] -= 0.4  # 下移相机
+        pos_eef[2] -= 0.4  # 锁定视角
+
+        # TODO: need to check the up vector
+        self.view_matrix = p.computeViewMatrix(cameraEyePosition=pos_eef,
+                                               cameraTargetPosition=pos_tip,
+                                               cameraUpVector=mat_eef[:, 0])  # upvector 只是决定哪一面向上
+        self.proj_matrix = p.computeProjectionMatrixFOV(fov=FoV,
+                                                        aspect=float(width) / height,
+                                                        nearVal=0.01,
+                                                        farVal=10.0)
+
+        rgb_array, mask = render_image(width, height,
+                                       self.view_matrix, self.proj_matrix)
+        # rgb_array = np.zeros((256, 256, 3))
+        # mask = np.zeros((256, 256, 1))
+        # modify here,原本返回了 zero
+        return rgb_array, mask
     def get_centroid_proj(self, pos) -> np.ndarray:
         """
         Compute the object position in the camera NDC space.

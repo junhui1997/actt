@@ -5,7 +5,7 @@
       <sourceFolder url="file://$MODULE_DIR$/detr" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/robomimic_r2d2/robomimic" isTestSource="false" />
     </content>
-    <orderEntry type="jdk" jdkName="aloha" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="surrol_aloha" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="PyDocumentationSettings">
