@@ -49,7 +49,7 @@ def main(args):
         np.random.seed(seeds)
         ts = env.reset()  # 初始时候return的是一个observation
         obs = ts
-        ts = parse_ts(ts, env)
+        ts = parse_ts(ts, env, is_joint=True)
         episode = []  # 和普通机械臂不一样，这里第一步就不加了因为没有相应的action
         # setup plotting
         view = 'ecm'  # 对于我的写angle
@@ -62,16 +62,15 @@ def main(args):
             # print(action) #qpos_psm1(0, 0, 0.1, 0, 0, 0)
             # psm1.get_current_joint_position [0.185499248417839, -0.007158239633729872, 0.14099653468572, -0.34351145262809457, -0.0563855950020197, -0.1769601211409867]
             # pose psm1 ((0.05, 0.24, 0.8524), (0, 0, -1.9198621771937625))
-            a = env.QPOS_PSM1
-            b = env.psm1.get_current_joint_position()
-
-            c = env.get_waypoints() # [绝对位置四个点】
-            d = [a[i]-b[i] for i in range(len(a))]
-            print(d)
+            # a = env.QPOS_PSM1
+            # b = env.psm1.get_current_joint_position()
+            # c = env.psm1.get_current_position()
+            # d = [a[i]-b[i] for i in range(len(a))]
+            # print(d)
 
             ts = env.step(action)  # psm env._set_action
             obs = ts[0]
-            ts = parse_ts(ts, env, action)
+            ts = parse_ts(ts, env, action, True)
             episode.append(ts)
             if onscreen_render:
                 plt_img.set_data(ts.observation['images'][view])
@@ -87,7 +86,7 @@ def main(args):
             print(f"{episode_idx=} Failed")
 
         joint_traj = [ts.observation['qpos'] for ts in episode]
-        action_traj = [ts.observation['action'] for ts in episode]
+
 
 
 
@@ -109,12 +108,12 @@ def main(args):
             plt_img = ax.imshow(ts.observation['images'][view])
             plt.ion()
         # ts = env.step(action)
-        for t in range(len(action_traj)):
-            action = action_traj[t]
+        for t in range(len(joint_traj)):
+            action = joint_traj[t]
             # print(action)
             #
-            ts = env.step(action)
-            ts = parse_ts(ts, env, action)
+            ts = env.step_ee(action)
+            ts = parse_ts(ts, env, action, is_joint=True)
             # print((np.array(ts.observation['qpos'])-np.array(action))[4:])
             episode_replay.append(ts)
             if onscreen_render:
@@ -163,8 +162,8 @@ def main(args):
         # len(joint_traj) i.e. actions: max_timesteps
         # len(episode_replay) i.e. time steps: max_timesteps + 1
         max_timesteps = len(joint_traj)
-        while action_traj:
-            action = action_traj.pop(0)  # action这里又回到了关节空间，上面使用qpos里面获取到的
+        while joint_traj:
+            action = joint_traj.pop(0)  # action这里又回到了关节空间，上面使用qpos里面获取到的
             ts = episode_replay.pop(0)
             data_dict['/observations/qpos'].append(ts.observation['qpos'])  # qpos不太确定是哪个，要看env里面写的究竟是啥
             data_dict['/action'].append(action)
@@ -178,7 +177,7 @@ def main(args):
             dim = 8
         elif task_name in surgical_tasks:
             robo_state_dim = 7
-            dim = 5
+            dim = 7
         else:
             dim = 14
         with h5py.File(dataset_path + '.hdf5', 'w', rdcc_nbytes=1024 ** 2 * 2) as root:

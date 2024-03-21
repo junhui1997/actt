@@ -70,7 +70,7 @@ class EpisodicDataset(torch.utils.data.Dataset):
                 action = np.concatenate([root['/action'][()], base_action], axis=-1)
             else:
                 action = root['/action'][()]
-                if action.shape[1]>10:
+                if action.shape[1] > 10:
                     dummy_base_action = np.zeros([action.shape[0], 2])
                     action = np.concatenate([action, dummy_base_action], axis=-1)
             original_action_shape = action.shape
@@ -282,7 +282,7 @@ def get_norm_stats(dataset_path_list):
 
                     # to_modify
                     action = root['/action'][()]  # 如果没有底盘的话，根据其他action的数目用0进行填充
-                    if action.shape[1]>10: #双臂
+                    if action.shape[1] > 10:  # 双臂
                         # dummy_base_action：【400,2】， action：【400,14】
                         dummy_base_action = np.zeros([action.shape[0], 2])
                         action = np.concatenate([action, dummy_base_action], axis=-1)
@@ -514,21 +514,63 @@ def set_seed(seed):
     torch.manual_seed(seed)
     np.random.seed(seed)
 
+
 class time_step:
     def __init__(self, observation, reward):
         self.observation = observation
         self.reward = reward
 
-def parse_ts(ts, env, action=None):
+
+def parse_ts(ts, env, action=None, is_joint=False):
     new_ts = time_step(OrderedDict(), -1)
-    # reset是时候
-    if isinstance(ts, dict):
-        new_ts.reward = -1
-        new_ts.observation['qpos'] = ts['observation'][:7]
+    # 使用关节空间进行训练
+    if is_joint:
+        # 使用关节空间进行训练时候qpos即是指令也是观测值， 不需要使用action这条信息
+        if isinstance(ts, dict):
+            new_ts.reward = -1
+            new_ts.observation['qpos'] = env.psm1.get_current_joint_position() + [0.5]  # 六个关节数值和夹爪，夹爪信息开
+        else:
+            new_ts.reward = ts[1]
+            new_ts.observation['qpos'] = env.psm1.get_current_joint_position() + [action[-1]]
     else:
-        new_ts.reward = ts[1]
-        new_ts.observation['qpos'] = ts[0]['observation'][:7]  # 对应robot state：位置+欧拉角+夹爪
-        new_ts.observation['action'] = action  #.tolist()
+        if isinstance(ts, dict):
+            new_ts.reward = -1
+            new_ts.observation['qpos'] = ts['observation'][:7]
+        else:
+            new_ts.reward = ts[1]
+            new_ts.observation['qpos'] = ts[0]['observation'][:7]  # 对应robot state：位置+欧拉角+夹爪
+            new_ts.observation['action'] = action  # .tolist()
+    ecm_img, mask = env.ecm.render_image(640, 480)  # 注意这里是反着写的
+    front_img, front_mask = env.ecm.render_image_front(640, 480)  # 注意这里是反着写的
+    top_img, top_mask = env.ecm.render_image_top(640, 480)  # 注意这里是反着写的
+    # human_img = env.render('rgb_array')
+    new_ts.observation['images'] = {}
+    new_ts.observation['images']['ecm'] = ecm_img
+    new_ts.observation['images']['top'] = top_img
+    new_ts.observation['images']['front'] = front_img
+    # new_ts.observation['images']['human'] = human_img
+    return new_ts
+
+
+def parse_ts_abs(ts, env, action=None, is_ee=False):
+    new_ts = time_step(OrderedDict(), -1)
+    # 使用关节空间进行训练
+    if is_ee:
+        # 使用关节空间进行训练时候qpos即是指令也是观测值， 不需要使用action这条信息
+        if isinstance(ts, dict):
+            new_ts.reward = -1
+            new_ts.observation['qpos'] = env.psm1.get_current_joint_position() + ts['observation'][6]  # 六个关节数值和夹爪，夹爪信息从robot state中获取
+        else:
+            new_ts.reward = ts[1]
+            new_ts.observation['qpos'] = env.psm1.get_current_joint_position() + ts[0]['observation'][6]
+    else:
+        if isinstance(ts, dict):
+            new_ts.reward = -1
+            new_ts.observation['qpos'] = ts['observation'][:7]
+        else:
+            new_ts.reward = ts[1]
+            new_ts.observation['qpos'] = ts[0]['observation'][:7]  # 对应robot state：位置+欧拉角+夹爪
+            new_ts.observation['action'] = action  # .tolist()
     ecm_img, mask = env.ecm.render_image(640, 480)  # 注意这里是反着写的
     front_img, front_mask = env.ecm.render_image_front(640, 480)  # 注意这里是反着写的
     top_img, top_mask = env.ecm.render_image_top(640, 480)  # 注意这里是反着写的

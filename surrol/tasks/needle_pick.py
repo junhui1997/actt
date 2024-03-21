@@ -61,8 +61,8 @@ class NeedlePick(PsmEnv):
         workspace_limits = self.workspace_limits1
         pos = (workspace_limits[0][0],
                workspace_limits[1][1],
-               (workspace_limits[2][1] + workspace_limits[2][0]) / 2)
-        orn = (0.5, 0.5, -0.5, -0.5)
+               (workspace_limits[2][1] + workspace_limits[2][0]) / 2)  # 位置限制
+        orn = (0.5, 0.5, -0.5, -0.5)                                   # 角度限制
         joint_positions = self.psm1.inverse_kinematics((pos, orn), self.psm1.EEF_LINK_INDEX)
         self.psm1.reset_joint(joint_positions)
         self.block_gripper = False
@@ -127,13 +127,16 @@ class NeedlePick(PsmEnv):
         # self.psm1.reset_joint(qs)
 
         self._waypoints[0] = np.array([pos_obj[0], pos_obj[1],
-                                       pos_obj[2] + (-0.0007 + 0.0102 + 0.005) * self.SCALING, yaw, 0.5])  # approach
+                                       pos_obj[2] + (-0.0007 + 0.0102 + 0.005) * self.SCALING, yaw, 0.5])  # approach, 这里的pose_obj应该是针的位姿
         self._waypoints[1] = np.array([pos_obj[0], pos_obj[1],
                                        pos_obj[2] + (-0.0007 + 0.0102) * self.SCALING, yaw, 0.5])  # approach
         self._waypoints[2] = np.array([pos_obj[0], pos_obj[1],
                                        pos_obj[2] + (-0.0007 + 0.0102) * self.SCALING, yaw, -0.5])  # grasp
         self._waypoints[3] = np.array([self.goal[0], self.goal[1],
                                        self.goal[2] + 0.0102 * self.SCALING, yaw, -0.5])  # lift up
+
+    def get_waypoints(self):
+        return self._waypoints
 
     def _meet_contact_constraint_requirement(self):
         # add a contact constraint to the grasped block to make it stable
@@ -154,14 +157,14 @@ class NeedlePick(PsmEnv):
         for i, waypoint in enumerate(self._waypoints):
             if waypoint is None:
                 continue
-            delta_pos = (waypoint[:3] - obs['observation'][:3]) / 0.01 / self.SCALING  # robot state里面的位置
+            delta_pos = (waypoint[:3] - obs['observation'][:3]) / 0.01 / self.SCALING  # robot state里面的位置 # action是在笛卡尔空间里的
             delta_yaw = (waypoint[3] - obs['observation'][5]).clip(-0.4, 0.4)   # z方向的欧拉角
             # 避免单次移动距离过大，某个方向移动距离超过一之后，拿该方向数值对其他方向进行放缩
             if np.abs(delta_pos).max() > 1:
                 delta_pos /= np.abs(delta_pos).max()
-            scale_factor = 0.1 # 控制整体移动速度， 原本0.4
+            scale_factor = 0.4 # 控制整体移动速度， 原本0.4
             delta_pos *= scale_factor
-            action = np.array([delta_pos[0], delta_pos[1], delta_pos[2], delta_yaw, waypoint[4]])
+            action = np.array([delta_pos[0], delta_pos[1], delta_pos[2], delta_yaw, waypoint[4]])  # 其他几个量是相对量，夹爪是个绝对量
             # 判断一下已经基本移动到这个点了，将该点置为None
             if np.linalg.norm(delta_pos) * 0.01 / scale_factor < 1e-4 and np.abs(delta_yaw) < 1e-2:
                 self._waypoints[i] = None

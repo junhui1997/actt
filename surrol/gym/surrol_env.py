@@ -104,9 +104,33 @@ class SurRoLEnv(gym.Env):
         # action should have a shape of (action_size, )
         if len(action.shape) > 1:
             action = action.squeeze(axis=-1)
-        action = np.clip(action, self.action_space.low, self.action_space.high)
+        action = np.clip(action, self.action_space.low, self.action_space.high)  # 这里是上下限是1和-1
         # time0 = time.time()
         self._set_action(action)
+        # time1 = time.time()
+        # TODO: check the best way to step simulation
+        step(self._duration)
+
+        # time2 = time.time()
+        # print(" -> robot action time: {:.6f}, simulation time: {:.4f}".format(time1 - time0, time2 - time1))
+        self._step_callback()
+        obs = self._get_obs()
+
+        done = False
+        info = {
+            'is_success': self._is_success(obs['achieved_goal'], self.goal),
+        } if isinstance(obs, dict) else {'achieved_goal': None}
+        if isinstance(obs, dict):
+            reward = self.compute_reward(obs['achieved_goal'], self.goal, info)
+        else:
+            reward = self.compute_reward(obs, self.goal, info)
+        # if len(self.actions) > 0:
+        #     self.actions[-1] = np.append(self.actions[-1], [reward])  # only for demo
+        # 这个地方因为继承了gym所以不能修改这里，需要维持同样是四个
+        return obs, reward, done, info
+
+    def step_ee(self, joint_info):
+        self._set_ee_action(joint_info)
         # time1 = time.time()
         # TODO: check the best way to step simulation
         step(self._duration)
@@ -184,6 +208,11 @@ class SurRoLEnv(gym.Env):
         raise NotImplementedError
 
     def _set_action(self, action):
+        """ Applies the given action to the simulation.
+        """
+        raise NotImplementedError
+
+    def _set_ee_action(self, action):
         """ Applies the given action to the simulation.
         """
         raise NotImplementedError

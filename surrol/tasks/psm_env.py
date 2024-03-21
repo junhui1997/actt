@@ -171,7 +171,7 @@ class PsmEnv(SurRoLGoalEnv):
 
         if self.has_object:
             # object/waypoint position
-            achieved_goal = object_pos.copy() if not self._waypoint_goal else waypoint_pos.copy()
+            achieved_goal = object_pos.copy() if not self._waypoint_goal else waypoint_pos.copy()  # self._waypoint true
         else:
             # tip position
             achieved_goal = np.array(get_link_pose(self.psm1.body, self.psm1.TIP_LINK_INDEX)[0])
@@ -187,6 +187,17 @@ class PsmEnv(SurRoLGoalEnv):
         }
         return obs
 
+    def _set_ee_action(self, joint_info):
+        self.psm1.move_joint(joint_info[:6])
+        # jaw
+        if self.block_gripper:
+            joint_info[6] = -1
+        if joint_info[6] < 0:
+            self.psm1.close_jaw()
+            self._activate(0)
+        else:
+            self.psm1.move_jaw(np.deg2rad(40))  # open jaw angle; can tune
+            self._release(0)
     def _set_action(self, action: np.ndarray):
         """
         delta_position (3), delta_theta (1) and open/close the gripper (1)

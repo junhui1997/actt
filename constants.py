@@ -62,9 +62,9 @@ SIM_TASK_CONFIGS = {
     },
     
     'NeedlePick-v0':{
-        'dataset_dir': DATA_DIR + '/NeedlePick-v0-new',
-        'num_episodes': 50,
-        'episode_len': 400,  # modify this
+        'dataset_dir': DATA_DIR + '/NeedlePick-v0-joint',
+        'num_episodes': 100,
+        'episode_len': 50,  # modify this
         'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
     },
 

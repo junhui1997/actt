@@ -9,7 +9,7 @@ import gym
 from surrol.const import ROOT_DIR_PATH
 from constants import PUPPET_GRIPPER_POSITION_NORMALIZE_FN, SIM_TASK_CONFIGS, surgical_tasks
 from collections import OrderedDict
-from utils import parse_ts
+from utils import parse_ts, parse_ts_abs
 import IPython
 e = IPython.embed
 
@@ -59,15 +59,8 @@ def main(args):
             plt.ion()
         for step in range(episode_len):
             action = env.get_oracle_action(obs)
-            # print(action) #qpos_psm1(0, 0, 0.1, 0, 0, 0)
-            # psm1.get_current_joint_position [0.185499248417839, -0.007158239633729872, 0.14099653468572, -0.34351145262809457, -0.0563855950020197, -0.1769601211409867]
-            # pose psm1 ((0.05, 0.24, 0.8524), (0, 0, -1.9198621771937625))
-            a = env.QPOS_PSM1
-            b = env.psm1.get_current_joint_position()
-
-            c = env.get_waypoints() # [绝对位置四个点】
-            d = [a[i]-b[i] for i in range(len(a))]
-            print(d)
+            waypoint_start = env.get_waypoints()[0] # [绝对位置四个点】,现在选取的是初始点
+            #
 
             ts = env.step(action)  # psm env._set_action
             obs = ts[0]

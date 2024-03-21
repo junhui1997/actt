@@ -13,12 +13,12 @@ import time
 from torchvision import transforms
 
 from constants import FPS
-from constants import PUPPET_GRIPPER_JOINT_OPEN , surgical_tasks
-from utils import load_data # data functions
-from utils import sample_box_pose, sample_insertion_pose # robot functions
-from utils import compute_dict_mean, set_seed, detach_dict, calibrate_linear_vel, postprocess_base_action # helper functions
+from constants import PUPPET_GRIPPER_JOINT_OPEN, surgical_tasks
+from utils import load_data  # data functions
+from utils import sample_box_pose, sample_insertion_pose  # robot functions
+from utils import compute_dict_mean, set_seed, detach_dict, calibrate_linear_vel, postprocess_base_action  # helper functions
 from utils import parse_ts  # for surgical robot
-import gym                  # for surgical robot
+import gym  # for surgical robot
 from policy import ACTPolicy, CNNMLPPolicy, DiffusionPolicy
 from visualize_episodes import save_videos
 
@@ -26,18 +26,22 @@ from detr.models.latent_model import Latent_Model_Transformer
 import imageio
 
 from sim_env import BOX_POSE
+
 os.environ["WANDB_DISABLED"] = "true"
-#os.environ["WANDB_API_KEY"] = "e7a9493a938ca7efec0cb4af510f601a70b38160"
+# os.environ["WANDB_API_KEY"] = "e7a9493a938ca7efec0cb4af510f601a70b38160"
 
 import IPython
+
 e = IPython.embed
+
 
 def get_auto_index(dataset_dir):
     max_idx = 1000
-    for i in range(max_idx+1):
+    for i in range(max_idx + 1):
         if not os.path.isfile(os.path.join(dataset_dir, f'qpos_{i}.npy')):
             return i
     raise Exception(f"Error getting auto index, or more than {max_idx} episodes")
+
 
 def main(args):
     set_seed(1)
@@ -76,7 +80,7 @@ def main(args):
     # fixed parameters
     state_dim = args['state_dim']
     lr_backbone = 1e-5
-    backbone = 'resnet18'
+    backbone = 'resnet18'  # 18,34
     if policy_class == 'ACT':
         enc_layers = 4
         dec_layers = 7
@@ -114,8 +118,9 @@ def main(args):
                          'vq': False,
                          }
     elif policy_class == 'CNNMLP':
-        policy_config = {'lr': args['lr'], 'lr_backbone': lr_backbone, 'backbone' : backbone, 'num_queries': 1, 'state_dim': state_dim,  'action_dim': action_dim, 'vq': False,# add by me
-                         'camera_names': camera_names,}
+        policy_config = {'lr': args['lr'], 'lr_backbone': lr_backbone, 'backbone': backbone, 'num_queries': 1, 'state_dim': state_dim, 'action_dim': action_dim, 'vq': False,
+                         # add by me
+                         'camera_names': camera_names, }
     else:
         raise NotImplementedError
 
@@ -172,7 +177,8 @@ def main(args):
         print()
         exit()
 
-    train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, name_filter, camera_names, batch_size_train, batch_size_val, args['chunk_size'], args['skip_mirrored_data'], config['load_pretrain'], policy_class, stats_dir_l=stats_dir, sample_weights=sample_weights, train_ratio=train_ratio)
+    train_dataloader, val_dataloader, stats, _ = load_data(dataset_dir, name_filter, camera_names, batch_size_train, batch_size_val, args['chunk_size'], args['skip_mirrored_data'],
+                                                           config['load_pretrain'], policy_class, stats_dir_l=stats_dir, sample_weights=sample_weights, train_ratio=train_ratio)
 
     # save dataset stats # dump本身就是保存
     stats_path = os.path.join(ckpt_dir, f'dataset_stats.pkl')
@@ -212,6 +218,7 @@ def make_optimizer(policy_class, policy):
         raise NotImplementedError
     return optimizer
 
+
 # get image用在infer阶段来重新调整图像
 def get_image(ts, camera_names, rand_crop_resize=False):
     curr_images = []
@@ -231,7 +238,7 @@ def get_image(ts, camera_names, rand_crop_resize=False):
         resize_transform = transforms.Resize(original_size, antialias=True)
         curr_image = resize_transform(curr_image)
         curr_image = curr_image.unsqueeze(0)
-    
+
     return curr_image
 
 
@@ -248,6 +255,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
     task_name = config['task_name']
     temporal_agg = config['temporal_agg']
     is_surgical = config['is_surgical']
+    is_surgical_joint = True
     onscreen_cam = 'angle'
     vq = config['policy_config']['vq']
     actuator_config = config['actuator_config']
@@ -291,7 +299,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
     #     actuator_stats_path  = os.path.join(actuator_network_dir, 'actuator_net_stats.pkl')
     #     with open(actuator_stats_path, 'rb') as f:
     #         actuator_stats = pickle.load(f)
-        
+
     #     actuator_unnorm = lambda x: x * actuator_stats['commanded_speed_std'] + actuator_stats['commanded_speed_std']
     #     actuator_norm = lambda x: (x - actuator_stats['observed_speed_mean']) / actuator_stats['observed_speed_mean']
     #     def collect_base_action(all_actions, norm_episode_all_base_actions):
@@ -307,8 +315,8 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
 
     # load environment
     if real_robot:
-        from aloha_scripts.robot_utils import move_grippers # requires aloha
-        from aloha_scripts.real_env import make_real_env # requires aloha
+        from aloha_scripts.robot_utils import move_grippers  # requires aloha
+        from aloha_scripts.real_env import make_real_env  # requires aloha
         env = make_real_env(init_node=True, setup_robots=True, setup_base=True)
         env_max_reward = 0
     else:
@@ -328,7 +336,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
         BASE_DELAY = 13
         query_frequency -= BASE_DELAY
 
-    max_timesteps = int(max_timesteps * 1) # may increase for real-world tasks  # to_modify
+    max_timesteps = int(max_timesteps * 1)  # may increase for real-world tasks  # to_modify
 
     ### collect video
     collect_video = 1
@@ -345,13 +353,13 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
         rollout_id += 0
         ### set task #这里是改啥的不太清楚，感觉是给外部暴露了一个接口来实现random随机初始状态
         if 'sim_transfer_cube' in task_name or 'sim_single_cube' in task_name:
-            BOX_POSE[0] = sample_box_pose() # used in sim reset
+            BOX_POSE[0] = sample_box_pose()  # used in sim reset
         elif 'sim_insertion' in task_name:
-            BOX_POSE[0] = np.concatenate(sample_insertion_pose()) # used in sim reset
+            BOX_POSE[0] = np.concatenate(sample_insertion_pose())  # used in sim reset
 
         ts = env.reset()
         if is_surgical:
-            ts = parse_ts(ts, env)
+            ts = parse_ts(ts, env, is_joint=is_surgical_joint)
         ### onscreen render
         if onscreen_render:
             ax = plt.subplot()
@@ -362,15 +370,13 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
                 plt_img = ax.imshow(env._physics.render(height=480, width=640, camera_id=onscreen_cam))
             plt.ion()
 
-
-
         ### evaluation loop
         if temporal_agg:
-            all_time_actions = torch.zeros([max_timesteps, max_timesteps+num_queries, config['policy_config']['action_dim']]).cuda()
+            all_time_actions = torch.zeros([max_timesteps, max_timesteps + num_queries, config['policy_config']['action_dim']]).cuda()
 
         # qpos_history = torch.zeros((1, max_timesteps, state_dim)).cuda()
         qpos_history_raw = np.zeros((max_timesteps, state_dim))
-        image_list = [] # for visualization
+        image_list = []  # for visualization
         qpos_list = []
         target_qpos_list = []
         rewards = []
@@ -379,7 +385,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
         with torch.inference_mode():
             time0 = time.time()
             DT = 1 / FPS
-            culmulated_delay = 0 
+            culmulated_delay = 0
             for t in range(max_timesteps):
                 time1 = time.time()
                 ### update onscreen render and wait for DT
@@ -441,7 +447,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
                         if real_robot:
                             all_actions = torch.cat([all_actions[:, :-BASE_DELAY, :-2], all_actions[:, BASE_DELAY:, -2:]], dim=2)
                     if temporal_agg:
-                        all_time_actions[[t], t:t+num_queries] = all_actions
+                        all_time_actions[[t], t:t + num_queries] = all_actions
                         actions_for_curr_step = all_time_actions[:, t]
                         actions_populated = torch.all(actions_for_curr_step != 0, axis=1)
                         actions_for_curr_step = actions_for_curr_step[actions_populated]
@@ -476,7 +482,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
                 time4 = time.time()
                 raw_action = raw_action.squeeze(0).cpu().numpy()
                 action = post_process(raw_action)
-                if len(action)>10:
+                if len(action) > 10:
                     target_qpos = action[:-2]  # 双臂时候
                 else:
                     target_qpos = action  # 单臂时候直接进行运算 to_modify
@@ -501,9 +507,12 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
                 if real_robot:
                     ts = env.step(target_qpos, base_action)
                 else:
-                    ts = env.step(target_qpos)
+                    if is_surgical_joint:
+                        ts = env.step_ee(target_qpos)
+                    else:
+                        ts = env.step(target_qpos)
                     if is_surgical:
-                        ts = parse_ts(ts, env, target_qpos)
+                        ts = parse_ts(ts, env, target_qpos, is_joint=is_surgical_joint)
                 # print('step env: ', time.time() - time5)
 
                 ### for visualization
@@ -531,7 +540,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
             plt.figure(figsize=(10, 20))
             # plot qpos_history_raw for each qpos dim using subplots
             for i in range(state_dim):
-                plt.subplot(state_dim, 1, i+1)
+                plt.subplot(state_dim, 1, i + 1)
                 plt.plot(qpos_history_raw[:, i])
                 # remove x axis
                 if i != state_dim - 1:
@@ -540,13 +549,12 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
             plt.savefig(os.path.join(ckpt_dir, f'qpos_{log_id}.png'))
             plt.close()
 
-
         rewards = np.array(rewards)
-        episode_return = np.sum(rewards[rewards!=None])
+        episode_return = np.sum(rewards[rewards != None])
         episode_returns.append(episode_return)
         episode_highest_reward = np.max(rewards)
         highest_rewards.append(episode_highest_reward)
-        print(f'Rollout {rollout_id}\n{episode_return=}, {episode_highest_reward=}, {env_max_reward=}, Success: {episode_highest_reward==env_max_reward}')
+        print(f'Rollout {rollout_id}\n{episode_return=}, {episode_highest_reward=}, {env_max_reward=}, Success: {episode_highest_reward == env_max_reward}')
 
         # if save_episode:
         #     save_videos(image_list, DT, video_path=os.path.join(ckpt_dir, f'video{rollout_id}.mp4'))
@@ -557,10 +565,10 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
     success_rate = np.mean(np.array(highest_rewards) == env_max_reward)
     avg_return = np.mean(episode_returns)
     summary_str = f'\nSuccess rate: {success_rate}\nAverage return: {avg_return}\n\n'
-    for r in range(env_max_reward+1):
+    for r in range(env_max_reward + 1):
         more_or_equal_r = (np.array(highest_rewards) >= r).sum()
         more_or_equal_r_rate = more_or_equal_r / num_rollouts
-        summary_str += f'Reward >= {r}: {more_or_equal_r}/{num_rollouts} = {more_or_equal_r_rate*100}%\n'
+        summary_str += f'Reward >= {r}: {more_or_equal_r}/{num_rollouts} = {more_or_equal_r_rate * 100}%\n'
 
     print(summary_str)
 
@@ -578,7 +586,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
 def forward_pass(data, policy):
     image_data, qpos_data, action_data, is_pad = data
     image_data, qpos_data, action_data, is_pad = image_data.cuda(), qpos_data.cuda(), action_data.cuda(), is_pad.cuda()
-    return policy(qpos_data, image_data, action_data, is_pad) # TODO remove None
+    return policy(qpos_data, image_data, action_data, is_pad)  # TODO remove None
 
 
 def train_bc(train_dataloader, val_dataloader, config):
@@ -605,9 +613,9 @@ def train_bc(train_dataloader, val_dataloader, config):
 
     min_val_loss = np.inf
     best_ckpt_info = None
-    
+
     train_dataloader = repeater(train_dataloader)  # train_dataloader里面作了重复，val没有
-    for step in tqdm(range(num_steps+1)):
+    for step in tqdm(range(num_steps + 1)):
         # validation # 最开始step==0的时候也会eval一次
         if step % validate_every == 0:
             print('validating')
@@ -622,21 +630,21 @@ def train_bc(train_dataloader, val_dataloader, config):
                     if batch_idx > 50:
                         break
 
-                validation_summary = compute_dict_mean(validation_dicts)   # 按照key计算均值
+                validation_summary = compute_dict_mean(validation_dicts)  # 按照key计算均值
 
                 epoch_val_loss = validation_summary['loss']
                 if epoch_val_loss < min_val_loss:
                     min_val_loss = epoch_val_loss
                     best_ckpt_info = (step, min_val_loss, deepcopy(policy.serialize()))
             for k in list(validation_summary.keys()):
-                validation_summary[f'val_{k}'] = validation_summary.pop(k) # 这一步比较抽象，其实就是把原本的key前面都加了val_
+                validation_summary[f'val_{k}'] = validation_summary.pop(k)  # 这一步比较抽象，其实就是把原本的key前面都加了val_
             wandb.log(validation_summary, step=step)
             print(f'Val loss:   {epoch_val_loss:.5f}')
             summary_string = ''
             for k, v in validation_summary.items():
                 summary_string += f'{k}: {v.item():.3f} '
             print(summary_string)
-                
+
         # evaluation
         if (step > 0) and (step % eval_every == 0):
             # first save then eval
@@ -655,7 +663,7 @@ def train_bc(train_dataloader, val_dataloader, config):
         loss = forward_dict['loss']
         loss.backward()
         optimizer.step()
-        wandb.log(forward_dict, step=step) # not great, make training 1-2% slower
+        wandb.log(forward_dict, step=step)  # not great, make training 1-2% slower
 
         if step % save_every == 0:
             ckpt_path = os.path.join(ckpt_dir, f'policy_step_{step}_seed_{seed}.ckpt')
@@ -670,6 +678,7 @@ def train_bc(train_dataloader, val_dataloader, config):
     print(f'Training finished:\nSeed {seed}, val loss {min_val_loss:.6f} at step {best_step}')
 
     return best_ckpt_info
+
 
 def repeater(data_loader):
     # 这个就像写在外面的for train_dataloader一样，每次loader这边repeat一次相当于一个epoch
@@ -713,7 +722,6 @@ if __name__ == '__main__':
     parser.add_argument('--vq_class', action='store', type=int, help='vq_class')
     parser.add_argument('--vq_dim', action='store', type=int, help='vq_dim')
     parser.add_argument('--no_encoder', action='store_true')
-
 
     # for all
     parser.add_argument('--action_dim', action='store', type=int, default=16, help='action dim', required=False)

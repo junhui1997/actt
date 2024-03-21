@@ -97,7 +97,7 @@ def goToGoal(env, last_obs):
     counter = 0
     while time_step < min(env._max_episode_steps, args.steps):
         action = env.get_oracle_action(obs)
-        # print(action) # action是一直有的
+        print(action) # action是一直有的
         # 每个timesteprender一次
         if args.video:
             # img, mask = env.render('img_array')
@@ -108,7 +108,7 @@ def goToGoal(env, last_obs):
             # masks.append(mask)
         obs, reward, done, info = env.step(action)  # dict. float, bool, dic
         # print(f" -> obs: {obs}, reward: {reward}, done: {done}, info: {info}.")
-        print(f" -> counter: {counter} reward: {reward}, done: {done}, info: {info}.")
+        # print(f" -> counter: {counter} reward: {reward}, done: {done}, info: {info}.")
         time_step += 1
 
         # not success为了只返回一个结果
