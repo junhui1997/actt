@@ -208,7 +208,7 @@ class PegTransfer(PsmEnv):
             delta_yaw = (waypoint[3] - obs['observation'][5]).clip(-0.4, 0.4)
             if np.abs(delta_pos).max() > 1:
                 delta_pos /= np.abs(delta_pos).max()
-            scale_factor = 0.7
+            scale_factor = 0.7 # 0.7
             delta_pos *= scale_factor
             action = np.array([delta_pos[0], delta_pos[1], delta_pos[2], delta_yaw, waypoint[4]])
             if (i==4 and self._cnt>=25) or (np.linalg.norm(delta_pos) * 0.01 / scale_factor < 2e-3 and np.abs(delta_yaw) < np.deg2rad(2.)):

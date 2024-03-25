@@ -32,7 +32,7 @@ masks = []
 def main():
     env = gym.make(args.env, render_mode='human')  # 'human'
     # env = gym.make(args.env)
-    num_itr = 100 if not args.video else 1
+    num_itr = 100 # if not args.video else 1
     cnt = 0
     init_state_space = 'random'
     env.reset()  # reset这里可以设定seed

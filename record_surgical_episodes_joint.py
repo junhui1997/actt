@@ -39,6 +39,7 @@ def main(args):
 
     success = []
     for episode_idx in range(num_episodes):
+        onscreen_render = False
         print(f'{episode_idx=}')
         print('Rollout out EE space scripted policy')
         # setup the environment
@@ -93,7 +94,7 @@ def main(args):
         # clear unused variables
         del episode
 
-
+        onscreen_render = True
         # setup the environment
         print('Replaying joint commands')
         # 这里因为用的同一个env所以就不用再make一遍了，但是为了保证数据一致还得重新设置一下seeds
@@ -106,6 +107,7 @@ def main(args):
         if onscreen_render:
             ax = plt.subplot()
             plt_img = ax.imshow(ts.observation['images'][view])
+            plt.title("EE")
             plt.ion()
         # ts = env.step(action)
         for t in range(len(joint_traj)):

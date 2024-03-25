@@ -27,8 +27,8 @@ import imageio
 
 from sim_env import BOX_POSE
 
-os.environ["WANDB_DISABLED"] = "true"
-# os.environ["WANDB_API_KEY"] = "e7a9493a938ca7efec0cb4af510f601a70b38160"
+# os.environ["WANDB_DISABLED"] = "true"
+os.environ["WANDB_API_KEY"] = "e7a9493a938ca7efec0cb4af510f601a70b38160"
 
 import IPython
 
@@ -526,7 +526,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
                 # time.sleep(max(0, DT - duration - culmulated_delay))
                 if duration >= DT:
                     culmulated_delay += (duration - DT)
-                    print(f'Warning: step duration: {duration:.3f} s at step {t} longer than DT: {DT} s, culmulated delay: {culmulated_delay:.3f} s')
+                    # print(f'Warning: step duration: {duration:.3f} s at step {t} longer than DT: {DT} s, culmulated delay: {culmulated_delay:.3f} s')
                 # else:
                 #     culmulated_delay = max(0, culmulated_delay - (DT - duration))
 
