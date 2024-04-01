@@ -190,6 +190,8 @@ class PsmEnv(SurRoLGoalEnv):
     def _set_ee_action(self, joint_info):
         self.psm1.move_joint(joint_info[:6])
         # jaw
+        print('single psm')
+        joint_info[6] = -0.8
         if self.block_gripper:
             joint_info[6] = -1
         if joint_info[6] < 0:
@@ -198,6 +200,18 @@ class PsmEnv(SurRoLGoalEnv):
         else:
             self.psm1.move_jaw(np.deg2rad(40))  # open jaw angle; can tune
             self._release(0)
+        # bimanul
+        # if len(joint_info) > 7:
+        #     self.psm2.move_joint(joint_info[7:-1])
+        #     # jaw
+        #     if self.block_gripper:
+        #         joint_info[-1] = -1
+        #     if joint_info[-1] < 0:
+        #         self.psm2.close_jaw()
+        #         self._activate(1)
+        #     else:
+        #         self.psm2.move_jaw(np.deg2rad(40))  # open jaw angle; can tune
+        #         self._release(1)
     def _set_action(self, action: np.ndarray):
         """
         delta_position (3), delta_theta (1) and open/close the gripper (1)
@@ -554,18 +568,27 @@ class PsmsEnv(PsmEnv):
                 psm.move_jaw(np.deg2rad(40))
                 self._release(i)
 
-        # if self.block_gripper:
-        #     action[4] = action[9] = -1
-        # if action[4] < 0:
-        #     self.psm1.close_jaw()
-        #     self._activate(0)
-        # else:
-        #     self.psm1.move_jaw(np.deg2rad(40))
-        #     self._release(0)
-        #
-        # if action[9] < 0:
-        #     self.psm2.close_jaw()
-        #     self._activate(1)
-        # else:
-        #     self.psm2.move_jaw(np.deg2rad(40))
-        #     self._release(1)
+
+    def _set_ee_action(self, joint_info):
+        # psms
+        self.psm1.move_joint(joint_info[:6])
+        # jaw
+        if self.block_gripper:
+            joint_info[6] = -1
+        if joint_info[6] < 0:
+            self.psm1.close_jaw()
+            self._activate(0)
+        else:
+            self.psm1.move_jaw(np.deg2rad(40))  # open jaw angle; can tune
+            self._release(0)
+        # bimanul
+        self.psm2.move_joint(joint_info[7:-1])
+        # jaw
+        if self.block_gripper:
+            joint_info[-1] = -1
+        if joint_info[-1] < 0:
+            self.psm2.close_jaw()
+            self._activate(1)
+        else:
+            self.psm2.move_jaw(np.deg2rad(40))  # open jaw angle; can tune
+            self._release(1)

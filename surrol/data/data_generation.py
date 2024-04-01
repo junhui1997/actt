@@ -99,13 +99,13 @@ def goToGoal(env, last_obs):
         action = env.get_oracle_action(obs)
         print(action) # action是一直有的
         # 每个timesteprender一次
-        if args.video:
-            # img, mask = env.render('img_array')
-            # img = env.render('rgb_array')  # 这个是使用全局视角的视频
-            # img = env.render('human')
-            img, mask = env.ecm.render_image(640, 480)
-            images.append(img)
-            # masks.append(mask)
+        # if args.video:
+        #     # img, mask = env.render('img_array')
+        #     # img = env.render('rgb_array')  # 这个是使用全局视角的视频
+        #     # img = env.render('human')
+        #     img, mask = env.ecm.render_image(640, 480)
+        #     images.append(img)
+        #     # masks.append(mask)
         obs, reward, done, info = env.step(action)  # dict. float, bool, dic
         # print(f" -> obs: {obs}, reward: {reward}, done: {done}, info: {info}.")
         # print(f" -> counter: {counter} reward: {reward}, done: {done}, info: {info}.")
@@ -113,7 +113,7 @@ def goToGoal(env, last_obs):
 
         # not success为了只返回一个结果
         if isinstance(obs, dict) and info['is_success'] > 0 and not success:
-            print("Timesteps to finish:", time_step)
+            print("It's success, timesteps to finish:", time_step)
             success = True
 
         episode_acs.append(action)

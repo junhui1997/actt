@@ -22,13 +22,13 @@ class PegTransfer(PsmEnv):
     SCALING = 5.
 
     QPOS_ECM = (0, 0.6, 0.04, 0)
-    ACTION_ECM_SIZE=3
-    #for haptic device demo
-    haptic=True
+    ACTION_ECM_SIZE = 3
+    # for haptic device demo
+    haptic = True
 
     # TODO: grasp is sometimes not stable; check how to fix it
 
-    def __init__(self, render_mode=None, cid = -1):
+    def __init__(self, render_mode=None, cid=-1):
         super(PegTransfer, self).__init__(render_mode, cid)
         self._view_matrix = p.computeViewMatrixFromYawPitchRoll(
             cameraTargetPosition=(-0.05 * self.SCALING, 0, 0.375 * self.SCALING),
@@ -47,7 +47,7 @@ class PegTransfer(PsmEnv):
         if self._render_mode == 'human':
             reset_camera(yaw=90.0, pitch=-30.0, dist=0.82 * self.SCALING,
                          target=(-0.05 * self.SCALING, 0, 0.36 * self.SCALING))
-        self.ecm = Ecm((0.15, 0.0, 0.8524), #p.getQuaternionFromEuler((0, 30 / 180 * np.pi, 0)),
+        self.ecm = Ecm((0.15, 0.0, 0.8524),  # p.getQuaternionFromEuler((0, 30 / 180 * np.pi, 0)),
                        scaling=self.SCALING)
         self.ecm.reset_joint(self.QPOS_ECM)
         # self.ecm.reset_joint((3.3482885360717773, -0.0017351149581372738, 4.2447919845581055,0))
@@ -75,7 +75,7 @@ class PegTransfer(PsmEnv):
         np.random.shuffle(self._pegs[:6])
         np.random.shuffle(self._pegs[6: 12])
         # print(self._pegs)
-        self._pegs = [2,1,0,3,4,5,6,7,9,11,10,8]
+        self._pegs = [2, 1, 0, 3, 4, 5, 6, 7, 9, 11, 10, 8]
         self._cnt = 0
         # blocks
         num_blocks = 4
@@ -122,6 +122,7 @@ class PegTransfer(PsmEnv):
         # self.obj_id, self.obj_link1 = self._blocks[2], -1
         # print(self.obj_ids['fixed'])
         # print(f'goal peg:{obj_id}')
+
     def _is_success(self, achieved_goal, desired_goal):
         """ Indicates whether or not the achieved goal successfully achieved the desired goal.
         """
@@ -158,13 +159,30 @@ class PegTransfer(PsmEnv):
         # self._waypoints[3] = np.array([pos_obj[0]-0.03, pos_obj[1],
         #                                pos_obj[2] + 0.045 * self.SCALING, yaw, -0.5])  # lift up
 
-        self._waypoints[0] = np.array([pos_obj[0]-0.0275, pos_obj[1]+0.005,
+        # self._waypoints[0] = np.array([pos_obj[0] - 0.0275, pos_obj[1] + 0.005,
+        #                                pos_obj[2] + 0.045 * self.SCALING, yaw, 0.5])  # above object
+        # self._waypoints[1] = np.array([pos_obj[0] - 0.0275, pos_obj[1] + 0.005,
+        #                                pos_obj[2] + (0.003 + 0.0102) * self.SCALING, yaw, 0.5])  # approach
+        # self._waypoints[2] = np.array([pos_obj[0] - 0.0275, pos_obj[1] + 0.005,
+        #                                pos_obj[2] + (0.003 + 0.0102) * self.SCALING, yaw, -0.5])  # grasp
+        # self._waypoints[3] = np.array([pos_obj[0] - 0.0275, pos_obj[1] + 0.005,
+        #                                pos_obj[2] + 0.045 * self.SCALING, yaw, -0.5])  # lift up
+
+        # 可用且有一定的成功率 # 在速度为0.5时候可用
+        # offset_x = 0.0275
+        # offset_y = 0.005
+        # offset_z_grasp = 0.0103
+        # 成功率更高
+        offset_x = 0.035
+        offset_y = 0.005
+        offset_z_grasp = 0.0105
+        self._waypoints[0] = np.array([pos_obj[0] - offset_x, pos_obj[1]+offset_y,
                                        pos_obj[2] + 0.045 * self.SCALING, yaw, 0.5])  # above object
-        self._waypoints[1] = np.array([pos_obj[0]-0.0275, pos_obj[1]+0.005,
-                                       pos_obj[2] + (0.003 + 0.0102) * self.SCALING, yaw, 0.5])  # approach
-        self._waypoints[2] = np.array([pos_obj[0]-0.0275, pos_obj[1]+0.005,
-                                       pos_obj[2] + (0.003 + 0.0102) * self.SCALING, yaw, -0.5])  # grasp
-        self._waypoints[3] = np.array([pos_obj[0]-0.0275, pos_obj[1]+0.005,
+        self._waypoints[1] = np.array([pos_obj[0] - offset_x, pos_obj[1]+offset_y,
+                                       pos_obj[2] + offset_z_grasp * self.SCALING, yaw, 0.5])  # approach
+        self._waypoints[2] = np.array([pos_obj[0] - offset_x, pos_obj[1]+offset_y,
+                                       pos_obj[2] + offset_z_grasp * self.SCALING, yaw, -0.5])  # grasp
+        self._waypoints[3] = np.array([pos_obj[0] - offset_x, pos_obj[1]+offset_y,
                                        pos_obj[2] + 0.045 * self.SCALING, yaw, -0.5])  # lift up
 
         # pos_peg = get_link_pose(self.obj_ids['fixed'][1], self.obj_id - np.min(self._blocks) + 6)[0]  # 6 pegs
@@ -172,8 +190,8 @@ class PegTransfer(PsmEnv):
                                 self._pegs[self.obj_id - np.min(self._blocks) + 6])[0]  # 6 pegs
         pos_place = [self.goal[0] + pos_obj[0] - pos_peg[0],
                      self.goal[1] + pos_obj[1] - pos_peg[1], self._waypoints[0][2]]  # consider offset
-        self._waypoints[4] = np.array([pos_place[0]-0.02, pos_place[1]+0.01, pos_place[2], yaw, -0.5])  # above goal
-        self._waypoints[5] = np.array([pos_place[0]-0.02, pos_place[1]+0.01, pos_place[2], yaw, 0.5])  # release
+        self._waypoints[4] = np.array([pos_place[0] - 0.02, pos_place[1] + 0.01, pos_place[2], yaw, -0.5])  # above goal
+        self._waypoints[5] = np.array([pos_place[0] - 0.02, pos_place[1] + 0.01, pos_place[2], yaw, 0.5])  # release
 
     def _meet_contact_constraint_requirement(self):
         # add a contact constraint to the grasped block to make it stable
@@ -183,9 +201,9 @@ class PegTransfer(PsmEnv):
             points_2 = p.getContactPoints(bodyA=self.psm1.body, linkIndexA=7)
             points_1 = [point[2] for point in points_1 if point[2] in self.obj_ids['rigid']]
             points_2 = [point[2] for point in points_2 if point[2] in self.obj_ids['rigid']]
-            contact_List = list(set(points_1)&set(points_2))
+            contact_List = list(set(points_1) & set(points_2))
             # print(f'joint contact item:{contact_List}')
-            if len(contact_List)>0:
+            if len(contact_List) > 0:
                 return True
         else:
             pose = get_link_pose(self.obj_id, -1)
@@ -202,21 +220,22 @@ class PegTransfer(PsmEnv):
         for i, waypoint in enumerate(self._waypoints):
             if waypoint is None:
                 continue
-            if i==4:
-                self._cnt+=1
+            if i == 4:
+                self._cnt += 1
             delta_pos = (waypoint[:3] - obs['observation'][:3]) / 0.01 / self.SCALING
             delta_yaw = (waypoint[3] - obs['observation'][5]).clip(-0.4, 0.4)
             if np.abs(delta_pos).max() > 1:
                 delta_pos /= np.abs(delta_pos).max()
-            scale_factor = 0.7 # 0.7
+            scale_factor = 0.5
             delta_pos *= scale_factor
             action = np.array([delta_pos[0], delta_pos[1], delta_pos[2], delta_yaw, waypoint[4]])
-            if (i==4 and self._cnt>=25) or (np.linalg.norm(delta_pos) * 0.01 / scale_factor < 2e-3 and np.abs(delta_yaw) < np.deg2rad(2.)):
-                self._cnt=0
+            if (i == 4 and self._cnt >= 25) or (np.linalg.norm(delta_pos) * 0.01 / scale_factor < 2e-3 and np.abs(delta_yaw) < np.deg2rad(2.)):
+                self._cnt = 0
                 self._waypoints[i] = None
             break
 
-        return action    
+        return action
+
     def _set_action_ecm(self, action):
         action *= 0.01 * self.SCALING
         pose_rcm = self.ecm.get_current_position()
@@ -227,7 +246,8 @@ class PegTransfer(PsmEnv):
 
     def _reset_ecm_pos(self):
         self.ecm.reset_joint(self.QPOS_ECM)
-        
+
+
 if __name__ == "__main__":
     env = PegTransfer(render_mode='human')  # create one process and corresponding env
 

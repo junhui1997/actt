@@ -11,8 +11,8 @@ from constants import PUPPET_GRIPPER_POSITION_NORMALIZE_FN, SIM_TASK_CONFIGS, su
 from collections import OrderedDict
 from utils import parse_ts
 import IPython
-e = IPython.embed
 
+e = IPython.embed
 
 
 def main(args):
@@ -28,17 +28,18 @@ def main(args):
     dataset_dir = args['dataset_dir']
     num_episodes = args['num_episodes']
     onscreen_render = args['onscreen_render']
-    render_cam_name = 'ecm'
+
 
     if not os.path.isdir(dataset_dir):
         os.makedirs(dataset_dir, exist_ok=True)
 
     episode_len = SIM_TASK_CONFIGS[task_name]['episode_len']
     camera_names = SIM_TASK_CONFIGS[task_name]['camera_names']
-
+    is_bimanul = surgical_tasks[task_name]['is_bimanual']
 
     success = []
-    for episode_idx in range(num_episodes):
+    episode_idx = 0
+    while episode_idx < num_episodes:
         print(f'{episode_idx=}')
         print('Rollout out EE space scripted policy')
         # setup the environment
@@ -49,10 +50,10 @@ def main(args):
         np.random.seed(seeds)
         ts = env.reset()  # 初始时候return的是一个observation
         obs = ts
-        ts = parse_ts(ts, env)
+        ts = parse_ts(ts, env, is_bi=is_bimanul)
         episode = []  # 和普通机械臂不一样，这里第一步就不加了因为没有相应的action
         # setup plotting
-        view = 'ecm'  # 对于我的写angle
+        view = 'top'  # 可选的有三个[ecm,top,front]
         if onscreen_render:
             ax = plt.subplot()
             plt_img = ax.imshow(ts.observation['images'][view])
@@ -62,16 +63,16 @@ def main(args):
             # print(action) #qpos_psm1(0, 0, 0.1, 0, 0, 0)
             # psm1.get_current_joint_position [0.185499248417839, -0.007158239633729872, 0.14099653468572, -0.34351145262809457, -0.0563855950020197, -0.1769601211409867]
             # pose psm1 ((0.05, 0.24, 0.8524), (0, 0, -1.9198621771937625))
-            a = env.QPOS_PSM1
-            b = env.psm1.get_current_joint_position()
-
-            c = env.get_waypoints() # [绝对位置四个点】
-            d = [a[i]-b[i] for i in range(len(a))]
-            print(d)
+            # a = env.QPOS_PSM1
+            # b = env.psm1.get_current_joint_position()
+            #
+            # c = env.get_waypoints() # [绝对位置四个点】
+            # d = [a[i]-b[i] for i in range(len(a))]
+            # print(d)
 
             ts = env.step(action)  # psm env._set_action
             obs = ts[0]
-            ts = parse_ts(ts, env, action)
+            ts = parse_ts(ts, env, action, is_bi=is_bimanul)
             episode.append(ts)
             if onscreen_render:
                 plt_img.set_data(ts.observation['images'][view])
@@ -89,11 +90,8 @@ def main(args):
         joint_traj = [ts.observation['qpos'] for ts in episode]
         action_traj = [ts.observation['action'] for ts in episode]
 
-
-
         # clear unused variables
         del episode
-
 
         # setup the environment
         print('Replaying joint commands')
@@ -101,7 +99,7 @@ def main(args):
         env.seed(seeds)
         np.random.seed(seeds)
         ts = env.reset()
-        ts = parse_ts(ts, env)
+        ts = parse_ts(ts, env, is_bi=is_bimanul)
         episode_replay = [ts]  # 这里是为了有第一步的obs来实现，然后才是action
         # setup plotting
         if onscreen_render:
@@ -114,7 +112,7 @@ def main(args):
             # print(action)
             #
             ts = env.step(action)
-            ts = parse_ts(ts, env, action)
+            ts = parse_ts(ts, env, action, is_bi=is_bimanul)
             # print((np.array(ts.observation['qpos'])-np.array(action))[4:])
             episode_replay.append(ts)
             if onscreen_render:
@@ -129,13 +127,12 @@ def main(args):
         else:
             success.append(0)
             print(f"{episode_idx=} Failed")
+            env.close()
+            continue
 
         plt.close()
 
         #
-
-
-
 
         """
         For each timestep:
@@ -174,13 +171,11 @@ def main(args):
         # HDF5
         t0 = time.time()
         dataset_path = os.path.join(dataset_dir, f'episode_{episode_idx}')
-        if task_name == 'sim_single_cube':
-            dim = 8
-        elif task_name in surgical_tasks:
-            robo_state_dim = 7
-            dim = 5
+        if task_name in surgical_tasks.keys():
+            robo_state_dim = surgical_tasks[task_name]['state_dim']
+            dim = surgical_tasks[task_name]['action_dim']
         else:
-            dim = 14
+            print('cant recognize task name')
         with h5py.File(dataset_path + '.hdf5', 'w', rdcc_nbytes=1024 ** 2 * 2) as root:
             root.attrs['sim'] = True
             obs = root.create_group('observations')  # create group相当于新建folder
@@ -196,8 +191,10 @@ def main(args):
                 root[name][...] = array
         print(f'Saving: {time.time() - t0:.1f} secs\n')
         env.close()
+        episode_idx += 1
     print(f'Saved to {dataset_dir}')
     print(f'Success: {np.sum(success)} / {len(success)}')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -205,6 +202,5 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_dir', action='store', type=str, help='dataset saving dir', required=True)
     parser.add_argument('--num_episodes', action='store', type=int, help='num_episodes', required=False)
     parser.add_argument('--onscreen_render', action='store_true')
-    
-    main(vars(parser.parse_args()))
 
+    main(vars(parser.parse_args()))
