@@ -558,6 +558,7 @@ def parse_ts(ts, env, action=None, is_joint=False, is_bi=False):
     new_ts.observation['images']['ecm'] = ecm_img
     new_ts.observation['images']['top'] = top_img
     new_ts.observation['images']['front'] = front_img
+    print(env.get_reward())
     # new_ts.observation['images']['human'] = human_img
     return new_ts
 

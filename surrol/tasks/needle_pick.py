@@ -6,7 +6,7 @@ import pybullet as p
 from surrol.tasks.psm_env import PsmEnv
 from surrol.utils.pybullet_utils import (
     get_link_pose,
-    reset_camera,    
+    reset_camera,
     wrap_angle
 )
 from surrol.tasks.ecm_env import EcmEnv, goal_distance
@@ -21,11 +21,11 @@ class NeedlePick(PsmEnv):
     WORKSPACE_LIMITS = ((0.50, 0.60), (-0.05, 0.05), (0.685, 0.745))  # reduce tip pad contact
     SCALING = 5.
     QPOS_ECM = (0, 0.6, 0.04, 0)
-    ACTION_ECM_SIZE=3
-    haptic=True
+    ACTION_ECM_SIZE = 3
+    haptic = True
 
     # TODO: grasp is sometimes not stable; check how to fix it
-    def __init__(self, render_mode=None, cid = -1):
+    def __init__(self, render_mode=None, cid=-1):
         super(NeedlePick, self).__init__(render_mode, cid)
         # 调整render的视角 # 没有调用这个，改了数字也没有反应
         self._view_matrix = p.computeViewMatrixFromYawPitchRoll(
@@ -37,32 +37,29 @@ class NeedlePick(PsmEnv):
             upAxisIndex=2
         )
 
-
-
     def _env_setup(self):
         super(NeedlePick, self)._env_setup()
         # np.random.seed(4)  # for experiment reproduce
         self.has_object = True
         self._waypoint_goal = True
- 
+
         # camera
         if self._render_mode == 'human':
             # reset_camera(yaw=90.0, pitch=-30.0, dist=0.82 * self.SCALING,
             #              target=(-0.05 * self.SCALING, 0, 0.36 * self.SCALING))
             reset_camera(yaw=89.60, pitch=-56, dist=5.98,
-                         target=(-0.13, 0.03,-0.94))
-        self.ecm = Ecm((0.15, 0.0, 0.8524), #p.getQuaternionFromEuler((0, 30 / 180 * np.pi, 0)),
+                         target=(-0.13, 0.03, -0.94))
+        self.ecm = Ecm((0.15, 0.0, 0.8524),  # p.getQuaternionFromEuler((0, 30 / 180 * np.pi, 0)),
                        scaling=self.SCALING)
         self.ecm.reset_joint(self.QPOS_ECM)
         # p.setPhysicsEngineParameter(enableFileCaching=0,numSolverIterations=10,numSubSteps=128,contactBreakingThreshold=2)
-
 
         # robot
         workspace_limits = self.workspace_limits1
         pos = (workspace_limits[0][0],
                workspace_limits[1][1],
                (workspace_limits[2][1] + workspace_limits[2][0]) / 2)  # 位置限制
-        orn = (0.5, 0.5, -0.5, -0.5)                                   # 角度限制
+        orn = (0.5, 0.5, -0.5, -0.5)  # 角度限制
         joint_positions = self.psm1.inverse_kinematics((pos, orn), self.psm1.EEF_LINK_INDEX)
         self.psm1.reset_joint(joint_positions)
         self.block_gripper = False
@@ -75,7 +72,7 @@ class NeedlePick(PsmEnv):
                             p.getQuaternionFromEuler(self.POSE_TRAY[1]),
                             globalScaling=self.SCALING)
         self.obj_ids['fixed'].append(obj_id)  # 1
-
+        self.tray_pad_id = obj_id
         # needle
         yaw = (np.random.rand() - 0.5) * np.pi
         obj_id = p.loadURDF(os.path.join(ASSET_DIR_PATH, 'needle/needle_40mm_RL.urdf'),
@@ -85,9 +82,11 @@ class NeedlePick(PsmEnv):
                             p.getQuaternionFromEuler((0, 0, yaw)),
                             useFixedBase=False,
                             globalScaling=self.SCALING)
+        self.needle_id = obj_id
         p.changeVisualShape(obj_id, -1, specularColor=(80, 80, 80))
         self.obj_ids['rigid'].append(obj_id)  # 0
-        self.obj_id, self.obj_link1 = self.obj_ids['rigid'][0], 1
+        self.obj_id, self.obj_link1 = self.obj_ids['rigid'][0], 1   # obj_link1代表的是psm1的ee的id
+
 
     def _sample_goal(self) -> np.ndarray:
         """ Samples a new goal and returns it.
@@ -132,8 +131,10 @@ class NeedlePick(PsmEnv):
                                        pos_obj[2] + (-0.0007 + 0.0102) * self.SCALING, yaw, 0.5])  # approach
         self._waypoints[2] = np.array([pos_obj[0], pos_obj[1],
                                        pos_obj[2] + (-0.0007 + 0.0102) * self.SCALING, yaw, -0.5])  # grasp
-        self._waypoints[3] = np.array([self.goal[0], self.goal[1],
-                                       self.goal[2] + 0.0102 * self.SCALING, yaw, -0.5])  # lift up
+        self._waypoints[3] = np.array([pos_obj[0], pos_obj[1],
+                                       pos_obj[2] + (-0.0007 + 0.052) * self.SCALING, yaw, -0.5])  # grasp
+        # self._waypoints[3] = np.array([self.goal[0], self.goal[1],
+        #                                self.goal[2] + 0.0102 * self.SCALING, yaw, -0.5])  # lift up #original
 
     def get_waypoints(self):
         return self._waypoints
@@ -158,11 +159,11 @@ class NeedlePick(PsmEnv):
             if waypoint is None:
                 continue
             delta_pos = (waypoint[:3] - obs['observation'][:3]) / 0.01 / self.SCALING  # robot state里面的位置 # action是在笛卡尔空间里的
-            delta_yaw = (waypoint[3] - obs['observation'][5]).clip(-0.4, 0.4)   # z方向的欧拉角
+            delta_yaw = (waypoint[3] - obs['observation'][5]).clip(-0.4, 0.4)  # z方向的欧拉角
             # 避免单次移动距离过大，某个方向移动距离超过一之后，拿该方向数值对其他方向进行放缩
             if np.abs(delta_pos).max() > 1:
                 delta_pos /= np.abs(delta_pos).max()
-            scale_factor = 0.4 # 控制整体移动速度， 原本0.4
+            scale_factor = 0.4  # 控制整体移动速度， 原本0.4
             delta_pos *= scale_factor
             action = np.array([delta_pos[0], delta_pos[1], delta_pos[2], delta_yaw, waypoint[4]])  # 其他几个量是相对量，夹爪是个绝对量
             # 判断一下已经基本移动到这个点了，将该点置为None
@@ -171,6 +172,7 @@ class NeedlePick(PsmEnv):
             break
 
         return action
+
     def _set_action_ecm(self, action):
         action *= 0.01 * self.SCALING
         pose_rcm = self.ecm.get_current_position()
@@ -178,8 +180,19 @@ class NeedlePick(PsmEnv):
         pos, _ = self.ecm.pose_rcm2world(pose_rcm, 'tuple')
         joint_positions = self.ecm.inverse_kinematics((pos, None), self.ecm.EEF_LINK_INDEX)  # do not consider orn
         self.ecm.move_joint(joint_positions[:self.ecm.DoF])
+
     def _reset_ecm_pos(self):
         self.ecm.reset_joint(self.QPOS_ECM)
+
+    # new reward function add by me
+    def get_reward(self):
+        contact_points = p.getContactPoints(self.tray_pad_id, self.needle_id)
+        # contact_points_ee = p.getContactPoints(self.psm1_ee, self.needle_id)
+        # 如果桌面针接触那么返回0,不然返回1
+        if len(contact_points) > 0:
+            return 0
+        else:
+            return 1
 
 
 if __name__ == "__main__":
@@ -188,4 +201,3 @@ if __name__ == "__main__":
     env.test()
     env.close()
     time.sleep(2)
-

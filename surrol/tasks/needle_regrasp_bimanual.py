@@ -6,7 +6,7 @@ import pybullet as p
 from surrol.tasks.psm_env import PsmsEnv
 from surrol.utils.pybullet_utils import (
     get_link_pose,
-    reset_camera, 
+    reset_camera,
     step
 )
 from surrol.utils.robotics import get_matrix_from_pose_2d
@@ -16,15 +16,16 @@ from surrol.robots.ecm import RENDER_HEIGHT, RENDER_WIDTH, FoV
 from surrol.const import ASSET_DIR_PATH
 from surrol.robots.ecm import Ecm
 
+
 class NeedleRegrasp(PsmsEnv):
     ACTION_MODE = 'pitch'
     WORKSPACE_LIMITS1 = ((0.55, 0.6), (0.01, 0.08), (0.695, 0.745))
     WORKSPACE_LIMITS2 = ((0.55, 0.6), (-0.08, -0.01), (0.695, 0.745))
     SCALING = 5.
     QPOS_ECM = (0, 0.6, 0.04, 0)
-    ACTION_ECM_SIZE=3
+    ACTION_ECM_SIZE = 3
 
-    def __init__(self, render_mode=None, cid = -1):
+    def __init__(self, render_mode=None, cid=-1):
         super(NeedleRegrasp, self).__init__(render_mode, cid)
         self._view_matrix = p.computeViewMatrixFromYawPitchRoll(
             cameraTargetPosition=(-0.05 * self.SCALING, 0, 0.375 * self.SCALING),
@@ -45,12 +46,11 @@ class NeedleRegrasp(PsmsEnv):
             # reset_camera(yaw=90.0, pitch=-30.0, dist=0.82 * self.SCALING,
             #              target=(-0.05 * self.SCALING, 0, 0.36 * self.SCALING))
             reset_camera(yaw=89.60, pitch=-56, dist=5.98,
-                         target=(-0.13, 0.03,-0.94))
-        self.ecm = Ecm((0.15, 0.0, 0.8524), #p.getQuaternionFromEuler((0, 30 / 180 * np.pi, 0)),
+                         target=(-0.13, 0.03, -0.94))
+        self.ecm = Ecm((0.15, 0.0, 0.8524),  # p.getQuaternionFromEuler((0, 30 / 180 * np.pi, 0)),
                        scaling=self.SCALING)
         self.ecm.reset_joint(self.QPOS_ECM)
         # p.setPhysicsEngineParameter(enableFileCaching=0,numSolverIterations=10,numSubSteps=128,contactBreakingThreshold=2)
-
 
         # robot
         for psm, workspace_limits in ((self.psm1, self.workspace_limits1), (self.psm2, self.workspace_limits2)):
@@ -79,6 +79,7 @@ class NeedleRegrasp(PsmsEnv):
                             useFixedBase=False,
                             globalScaling=self.SCALING)
         p.changeVisualShape(obj_id, -1, specularColor=(80, 80, 80))
+        self.needle_id = obj_id  # 6
         self.obj_ids['rigid'].append(obj_id)  # 0
         self.obj_id, self.obj_link1, self.obj_link2 = self.obj_ids['rigid'][0], 4, 5
 
@@ -212,6 +213,7 @@ class NeedleRegrasp(PsmsEnv):
             break
 
         return action
+
     def _set_action_ecm(self, action):
         action *= 0.01 * self.SCALING
         pose_rcm = self.ecm.get_current_position()
@@ -219,10 +221,26 @@ class NeedleRegrasp(PsmsEnv):
         pos, _ = self.ecm.pose_rcm2world(pose_rcm, 'tuple')
         joint_positions = self.ecm.inverse_kinematics((pos, None), self.ecm.EEF_LINK_INDEX)  # do not consider orn
         self.ecm.move_joint(joint_positions[:self.ecm.DoF])
+
     def _reset_ecm_pos(self):
         self.ecm.reset_joint(self.QPOS_ECM)
 
-
+    def get_reward(self):
+        # 右边的是psm1,左边的是2
+        # 如果是双臂的话右边的index是1,左边的index是4
+        psm1_needle = len(p.getContactPoints(1, self.needle_id)) > 0
+        psm2_needle = len(p.getContactPoints(self.obj_link1, self.needle_id)) > 0
+        table_needle = len(p.getContactPoints(self.table_id, self.needle_id)) > 0
+        print(psm1_needle, psm2_needle, table_needle)
+        # contact_points_ee = p.getContactPoints(self.psm1_ee, self.needle_id)
+        # 如果桌面针接触那么返回0,不然返回1
+        if psm2_needle and psm1_needle:
+            return 1
+        elif psm2_needle and not table_needle:
+            return 2
+        elif table_needle:
+            return 0
+        return 0
 
 
 if __name__ == "__main__":

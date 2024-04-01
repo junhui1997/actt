@@ -42,12 +42,12 @@ class PsmEnv(SurRoLGoalEnv):
     POSE_TABLE = ((0.5, 0, 0.001), (0, 0, 0))
     # original limits
     WORKSPACE_LIMITS1 = ((0.50, 0.60), (-0.05, 0.05), (0.675, 0.745))
-    #modified limits for peg_board
+    # modified limits for peg_board
     # WORKSPACE_LIMITS1 = ((0.50, 0.60), (-0.05, 0.05), (0.675, 0.785))
     SCALING = 1.
 
     def __init__(self,
-                 render_mode=None, cid = -1):
+                 render_mode=None, cid=-1):
         # workspace
         workspace_limits = np.asarray(self.WORKSPACE_LIMITS1) \
                            + np.array([0., 0., 0.0102]).reshape((3, 1))  # tip-eef offset with collision margin
@@ -96,7 +96,7 @@ class PsmEnv(SurRoLGoalEnv):
         # return - (d > self.distance_threshold).astype(np.float32)
         return self._is_success(achieved_goal, desired_goal).astype(np.float32) - 1.
 
-    def _env_setup(self,goal_plot=True):
+    def _env_setup(self, goal_plot=True):
         # camera
         if self._render_mode == 'human':
             reset_camera(yaw=90.0, pitch=-30.0, dist=0.82 * self.SCALING,
@@ -117,20 +117,24 @@ class PsmEnv(SurRoLGoalEnv):
         self._contact_constraint = None
         self._contact_approx = False
 
-        p.loadURDF(os.path.join(ASSET_DIR_PATH, 'table/table.urdf'),
+        self.table_id = p.loadURDF(os.path.join(ASSET_DIR_PATH, 'table/table.urdf'),
                    np.array(self.POSE_TABLE[0]) * self.SCALING,
                    p.getQuaternionFromEuler(self.POSE_TABLE[1]),
                    globalScaling=self.SCALING)
 
         # for goal plotting
+        # 红色点点 # 其他几个默认开启的
+        task_name = type(self).__name__
+        if task_name == 'NeedlePick' or task_name == 'NeedleRegrasp':
+            goal_plot = False
         if goal_plot:
             obj_id = p.loadURDF(os.path.join(ASSET_DIR_PATH, 'sphere/sphere.urdf'),
                                 globalScaling=self.SCALING)
             self.obj_ids['fixed'].append(obj_id)  # 0
-        else: 
+        else:
             obj_id = p.loadURDF(os.path.join(ASSET_DIR_PATH, 'sphere/sphere.urdf'),
-                                globalScaling=0.000001) #visually remove
-            self.obj_ids['fixed'].append(obj_id)  # 0    
+                                globalScaling=0.002)  # visually remove #0.000001 #之前的数值太小了，反而没有效果了
+            self.obj_ids['fixed'].append(obj_id)  # 0
         # print(f'goal:{obj_id}')
         pass  # need to implement based on every task
         # self.obj_ids
@@ -190,8 +194,7 @@ class PsmEnv(SurRoLGoalEnv):
     def _set_ee_action(self, joint_info):
         self.psm1.move_joint(joint_info[:6])
         # jaw
-        print('single psm')
-        joint_info[6] = -0.8
+        # print('single psm')
         if self.block_gripper:
             joint_info[6] = -1
         if joint_info[6] < 0:
@@ -212,6 +215,7 @@ class PsmEnv(SurRoLGoalEnv):
         #     else:
         #         self.psm2.move_jaw(np.deg2rad(40))  # open jaw angle; can tune
         #         self._release(1)
+
     def _set_action(self, action: np.ndarray):
         """
         delta_position (3), delta_theta (1) and open/close the gripper (1)
@@ -270,7 +274,7 @@ class PsmEnv(SurRoLGoalEnv):
         d = goal_distance(achieved_goal, desired_goal)
         return (d < self.distance_threshold).astype(np.float32)
 
-    def _step_callback(self,demo=1):
+    def _step_callback(self, demo=1):
         """ Remove the contact constraint if no contacts
         """
         if self.block_gripper or not self.has_object or self._activated < 0:
@@ -289,17 +293,17 @@ class PsmEnv(SurRoLGoalEnv):
                 points_2 = p.getContactPoints(bodyA=psm.body, linkIndexA=7)
                 points_1 = [point[2] for point in points_1 if point[2] in self.obj_ids['rigid']]
                 points_2 = [point[2] for point in points_2 if point[2] in self.obj_ids['rigid']]
-                contact_List = list(set(points_1)&set(points_2))
+                contact_List = list(set(points_1) & set(points_2))
                 # print(f'contact{contact_List}')
                 # print(f'contact item id:{contact_List}')
-                if len(contact_List)>0:
-                    contact_Id=contact_List[-1]
+                if len(contact_List) > 0:
+                    contact_Id = contact_List[-1]
                     body_pose = p.getLinkState(psm.body, psm.EEF_LINK_INDEX)
                     obj_pose = p.getBasePositionAndOrientation(contact_Id)
                     world_to_body = p.invertTransform(body_pose[0], body_pose[1])
                     obj_to_body = p.multiplyTransforms(world_to_body[0],
-                                                    world_to_body[1],
-                                                    obj_pose[0], obj_pose[1])                
+                                                       world_to_body[1],
+                                                       obj_pose[0], obj_pose[1])
 
                     self._contact_constraint = p.createConstraint(
                         parentBodyUniqueId=psm.body,
@@ -326,7 +330,7 @@ class PsmEnv(SurRoLGoalEnv):
             points_2 = p.getContactPoints(bodyA=psm.body, linkIndexA=7)
             points_1 = [point[2] for point in points_1 if point[2] in self.obj_ids['rigid']]
             points_2 = [point[2] for point in points_2 if point[2] in self.obj_ids['rigid']]
-            intersect = list(set(points_1)&set(points_2))
+            intersect = list(set(points_1) & set(points_2))
             # if len(intersect) > 0:
             #     contact_Id = intersect[-1]
             # else:
@@ -383,13 +387,13 @@ class PsmEnv(SurRoLGoalEnv):
                 points_2 = p.getContactPoints(bodyA=psm.body, linkIndexA=7)
                 points_1 = [point[2] for point in points_1 if point[2] in self.obj_ids['rigid']]
                 points_2 = [point[2] for point in points_2 if point[2] in self.obj_ids['rigid']]
-                intersect = list(set(points_1)&set(points_2))
+                intersect = list(set(points_1) & set(points_2))
                 # print(f'left gripper: {points_1}')
                 # print(f'right gripper: {points_2}')
-                if len(intersect)>0:
+                if len(intersect) > 0:
                     self._activated = idx
 
-    def _release(self, idx: int,demo=1):
+    def _release(self, idx: int, demo=1):
         # release the object
         if self.block_gripper:
             return
@@ -399,7 +403,7 @@ class PsmEnv(SurRoLGoalEnv):
             if self._contact_constraint is not None:
                 try:
                     # print(f"no contact!to remove constraint id{self._contact_constraint}!")
-                    for i in range(1,self._contact_constraint+1):
+                    for i in range(1, self._contact_constraint + 1):
                         p.changeConstraint(i, maxForce=0)
                         p.removeConstraint(i)
                     if not p.getNumConstraints():
@@ -409,7 +413,6 @@ class PsmEnv(SurRoLGoalEnv):
                     # p.changeConstraint(self._contact_constraint, maxForce=0)
                     # self._contact_constraint = None
                     # print(f"#(constraint)?{p.getNumConstraints()}!")
-
 
                     # enable collision
                     # psm = self.psm1 if idx == 0 else self.psm2
@@ -455,7 +458,7 @@ class PsmsEnv(PsmEnv):
     SCALING = 1.
 
     def __init__(self,
-                 render_mode=None, cid = -1):
+                 render_mode=None, cid=-1):
         # workspace
         workspace_limits = np.asarray(self.WORKSPACE_LIMITS2) \
                            + np.array([0., 0., 0.0102]).reshape((3, 1))  # tip-eef offset with collision margin
@@ -568,8 +571,9 @@ class PsmsEnv(PsmEnv):
                 psm.move_jaw(np.deg2rad(40))
                 self._release(i)
 
-
     def _set_ee_action(self, joint_info):
+        # 这里很奇怪的一点是，前面的是psm1,后面的是psm2
+        # 注意activate和release都有自己的编号
         # psms
         self.psm1.move_joint(joint_info[:6])
         # jaw
@@ -581,7 +585,7 @@ class PsmsEnv(PsmEnv):
         else:
             self.psm1.move_jaw(np.deg2rad(40))  # open jaw angle; can tune
             self._release(0)
-        # bimanul
+        # bimanual
         self.psm2.move_joint(joint_info[7:-1])
         # jaw
         if self.block_gripper:
