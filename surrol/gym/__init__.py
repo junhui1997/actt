@@ -23,20 +23,20 @@ register(
 register(
     id='PegTransfer-v0',
     entry_point='surrol.tasks.peg_transfer:PegTransfer',
-    max_episode_steps=100,
+    max_episode_steps=150,
 )
 
 # Bimanual PSM Env
 register(
     id='NeedleRegrasp-v0',
     entry_point='surrol.tasks.needle_regrasp_bimanual:NeedleRegrasp',
-    max_episode_steps=50,
+    max_episode_steps=100,
 )
 
 register(
     id='BiPegTransfer-v0',
     entry_point='surrol.tasks.peg_transfer_bimanual:BiPegTransfer',
-    max_episode_steps=100,
+    max_episode_steps=150,
 )
 
 # ECM Env

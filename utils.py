@@ -70,7 +70,7 @@ class EpisodicDataset(torch.utils.data.Dataset):
                 action = np.concatenate([root['/action'][()], base_action], axis=-1)
             else:
                 action = root['/action'][()]
-                if action.shape[1] > 10:
+                if action.shape[1] > 14:
                     dummy_base_action = np.zeros([action.shape[0], 2])
                     action = np.concatenate([action, dummy_base_action], axis=-1)
             original_action_shape = action.shape
@@ -282,7 +282,7 @@ def get_norm_stats(dataset_path_list):
 
                     # to_modify
                     action = root['/action'][()]  # 如果没有底盘的话，根据其他action的数目用0进行填充
-                    if action.shape[1] > 10:  # 双臂
+                    if action.shape[1] > 14:  # 双臂
                         # dummy_base_action：【400,2】， action：【400,14】
                         dummy_base_action = np.zeros([action.shape[0], 2])
                         action = np.concatenate([action, dummy_base_action], axis=-1)

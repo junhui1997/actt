@@ -33,7 +33,7 @@ def main(args):
     if not os.path.isdir(dataset_dir):
         os.makedirs(dataset_dir, exist_ok=True)
 
-    episode_len = SIM_TASK_CONFIGS[task_name]['episode_len']
+    episode_len = surgical_tasks_joint[task_name]['episode_len']
     camera_names = SIM_TASK_CONFIGS[task_name]['camera_names']
     is_bimanul = surgical_tasks_joint[task_name]['is_bimanual']
 

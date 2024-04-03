@@ -5,60 +5,70 @@ surgical_tasks ={'NeedlePick-v0':{
         'action_dim': 7,
         'state_dim': 5,
         'is_bimanual': False,
+        'episode_len': 50,  # for collect data
         'max_reward':2
     },
     'NeedleReach-v0':{
         'action_dim': 7,
         'state_dim': 5,
         'is_bimanual': False,
+        'episode_len': 50,  # for collect data
         'max_reward':1
     },
     'NeedleRegrasp-v0':{
         'action_dim': 14,
         'state_dim': 10,
         'is_bimanual': True,
+        'episode_len': 50,  # for collect data
         'max_reward':2
     },
     'PegTransfer-v0':{
         'action_dim': 7,
         'state_dim': 5,
         'is_bimanual': False,
+        'episode_len': 100,  # for collect data
         'max_reward':3
     },
     'BiPegTransfer-v0':{
         'action_dim': 14,
         'state_dim': 10,
         'is_bimanual': True,
+        'episode_len': 100,  # for collect data
         'max_reward':4
     }}
 surgical_tasks_joint ={'NeedlePick-v0':{
         'action_dim': 7,
         'state_dim': 7,
         'is_bimanual': False,
+        'episode_len': 50,  # for collect data
         'max_reward':2
     },
     'NeedleReach-v0':{
         'action_dim': 7,
         'state_dim': 7,
         'is_bimanual': False,
+        'episode_len': 50,  # for collect data
         'max_reward':1
     },
     'NeedleRegrasp-v0':{
         'action_dim': 14,
         'state_dim': 14,
         'is_bimanual': True,
+        'episode_len': 50,  # for collect data
         'max_reward':2
     },
     'PegTransfer-v0':{
         'action_dim': 7,
-        'state_dim': 5,
+        'state_dim': 7,
         'is_bimanual': False,
+        'episode_len': 100,  # for collect data
         'max_reward':3
     },
     'BiPegTransfer-v0':{
         'action_dim': 14,
         'state_dim': 14,
         'is_bimanual': True,
+        'episode_len': 100,  # for collect data
         'max_reward':4
     }}
 ### Task parameters
