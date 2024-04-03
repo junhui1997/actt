@@ -186,13 +186,17 @@ class NeedlePick(PsmEnv):
 
     # new reward function add by me
     def get_reward(self):
-        contact_points = p.getContactPoints(self.tray_pad_id, self.needle_id)
-        # contact_points_ee = p.getContactPoints(self.psm1_ee, self.needle_id)
+        pad_needle = len(p.getContactPoints(self.tray_pad_id, self.needle_id)) > 0
+        psm_needle = len(p.getContactPoints(self.obj_link1, self.needle_id)) > 0
         # 如果桌面针接触那么返回0,不然返回1
-        if len(contact_points) > 0:
-            return 0
-        else:
+        if psm_needle and pad_needle:
+            # 接触针但是，没有举起
             return 1
+        elif psm_needle and not pad_needle:
+            # 接触针并举起
+            return 2
+        else:
+            return 0
 
 
 if __name__ == "__main__":

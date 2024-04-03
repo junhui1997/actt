@@ -82,7 +82,7 @@ def main(args):
         episode_return = np.sum([ts.reward for ts in episode])  # episode_return反映的是奖励的水平
         episode_max_reward = np.max([ts.reward for ts in episode])  # 获取最大的reward
         # env需要写max_reward
-        if episode_max_reward == 0:
+        if episode_max_reward == surgical_tasks[task_name]['max_reward']:
             print(f"{episode_idx=} Successful, {episode_return=}")
         else:
             print(f"{episode_idx=} Failed")
@@ -120,8 +120,8 @@ def main(args):
                 plt.pause(0.02)
         episode_return = np.sum([ts.reward for ts in episode_replay[1:]])
         episode_max_reward = np.max([ts.reward for ts in episode_replay[1:]])
-        print(episode_max_reward, 0)
-        if episode_max_reward == 0:
+        print('episode reward/ env reward: ', episode_max_reward, surgical_tasks[task_name]['max_reward'])
+        if episode_max_reward == surgical_tasks[task_name]['max_reward']:
             success.append(1)
             print(f"{episode_idx=} Successful, {episode_return=}")
         else:

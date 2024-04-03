@@ -13,7 +13,7 @@ import time
 from torchvision import transforms
 
 from constants import FPS
-from constants import PUPPET_GRIPPER_JOINT_OPEN, surgical_tasks
+from constants import PUPPET_GRIPPER_JOINT_OPEN, surgical_tasks, surgical_tasks_joint
 from utils import load_data  # data functions
 from utils import sample_box_pose, sample_insertion_pose  # robot functions
 from utils import compute_dict_mean, set_seed, detach_dict, calibrate_linear_vel, postprocess_base_action  # helper functions
@@ -61,8 +61,8 @@ def main(args):
     action_dim = args['action_dim']  # action_dim by me
 
     # get task parameters
-    is_sim = task_name[:4] == 'sim_' or task_name in surgical_tasks
-    if is_sim or task_name == 'all' or task_name in surgical_tasks:
+    is_sim = task_name[:4] == 'sim_' or task_name in surgical_tasks.keys() or task_name in surgical_tasks_joint.keys()
+    if is_sim or task_name == 'all' or task_name in surgical_tasks.keys() or task_name in surgical_tasks_joint.keys():
         from constants import SIM_TASK_CONFIGS
         task_config = SIM_TASK_CONFIGS[task_name]
     else:
@@ -148,6 +148,7 @@ def main(args):
         'seed': args['seed'],
         'temporal_agg': args['temporal_agg'],
         'is_surgical': args['is_surgical'],
+        'is_joint': args['is_joint'],
         'camera_names': camera_names,
         'real_robot': not is_sim,
         'load_pretrain': args['load_pretrain'],
@@ -255,7 +256,6 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
     task_name = config['task_name']
     temporal_agg = config['temporal_agg']
     is_surgical = config['is_surgical']
-    is_surgical_joint = True
     onscreen_cam = 'angle'
     vq = config['policy_config']['vq']
     actuator_config = config['actuator_config']
@@ -313,6 +313,13 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
     else:
         post_process = lambda a: a * stats['action_std'] + stats['action_mean']
 
+    if config['is_joint']:
+        surgical_config = surgical_tasks_joint
+        is_surgical_joint = True
+    else:
+        surgical_config = surgical_tasks
+        is_surgical_joint = False
+
     # load environment
     if real_robot:
         from aloha_scripts.robot_utils import move_grippers  # requires aloha
@@ -323,7 +330,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
         from sim_env import make_sim_env
         if is_surgical:
             env = gym.make(task_name)
-            env_max_reward = 0
+            env_max_reward = surgical_config[task_name]['max_reward']
         else:
             env = make_sim_env(task_name)
             env_max_reward = env.task.max_reward
@@ -727,5 +734,6 @@ if __name__ == '__main__':
     parser.add_argument('--action_dim', action='store', type=int, default=16, help='action dim', required=False)
     parser.add_argument('--state_dim', action='store', type=int, default=14, help='state dim', required=False)
     parser.add_argument('--is_surgical', action='store_true', help='if is surgical or not ', required=False)
+    parser.add_argument('--is_joint', action='store_true', help='absolute joint control or increament control ', required=False)
 
     main(vars(parser.parse_args()))

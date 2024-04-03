@@ -66,6 +66,7 @@ class PegTransfer(PsmEnv):
                             np.array(self.POSE_BOARD[0]) * self.SCALING,
                             p.getQuaternionFromEuler(self.POSE_BOARD[1]),
                             globalScaling=self.SCALING)
+        self.peg_borad = obj_id
         self.obj_ids['fixed'].append(obj_id)  # 1
         # print(f'peg transfer\' board size: {p.getVisualShapeData(obj_id)}')
         # group = 1#other objects don't collide with me
@@ -94,8 +95,9 @@ class PegTransfer(PsmEnv):
         # print(f'peg transfer\' peg size: {p.getVisualShapeData(obj_id)}')
 
         np.random.shuffle(self._blocks)
+        self.target_block = self._blocks[0]
         for obj_id in self._blocks[:1]:
-            # change color to red
+            # change color to red # 把第一个块变成红色
             p.changeVisualShape(obj_id, -1, rgbaColor=(255 / 255, 69 / 255, 58 / 255, 1))
         self.obj_id, self.obj_link1 = self._blocks[0], -1
 
@@ -247,6 +249,19 @@ class PegTransfer(PsmEnv):
     def _reset_ecm_pos(self):
         self.ecm.reset_joint(self.QPOS_ECM)
 
+    def get_reward(self):
+        psm_block = len(p.getContactPoints(self.obj_link1, self.target_block)) > 0
+        borad_block = len(p.getContactPoints(self.peg_borad, self.target_block)) > 0
+        if self.task_completed:
+            return 3
+        elif psm_block and borad_block:
+            # 接触到block，但是没有举起
+            return 1
+        elif psm_block and not borad_block:
+            # 成功举起
+            return 2
+        else:
+            return 0
 
 if __name__ == "__main__":
     env = PegTransfer(render_mode='human')  # create one process and corresponding env

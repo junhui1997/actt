@@ -33,6 +33,7 @@ class SurRoLEnv(gym.Env):
     def __init__(self, render_mode: str = None, cid: int = -1):
         # rendering and connection options
         self._render_mode = render_mode
+        self.task_completed = False
         # render_mode = 'human'
         # if render_mode == 'human':
         #     self.cid = p.connect(p.SHARED_MEMORY)
@@ -120,10 +121,16 @@ class SurRoLEnv(gym.Env):
         info = {
             'is_success': self._is_success(obs['achieved_goal'], self.goal),
         } if isinstance(obs, dict) else {'achieved_goal': None}
+        # reward就是一个数值量，-1代表未完成，0代表完成,这是float型的
         if isinstance(obs, dict):
             reward = self.compute_reward(obs['achieved_goal'], self.goal, info)
         else:
             reward = self.compute_reward(obs, self.goal, info)
+
+        if int(reward) == -1:
+            self.task_completed = False
+        else:
+            self.task_completed = True
         # if len(self.actions) > 0:
         #     self.actions[-1] = np.append(self.actions[-1], [reward])  # only for demo
         # 这个地方因为继承了gym所以不能修改这里，需要维持同样是四个
@@ -148,6 +155,11 @@ class SurRoLEnv(gym.Env):
             reward = self.compute_reward(obs['achieved_goal'], self.goal, info)
         else:
             reward = self.compute_reward(obs, self.goal, info)
+
+        if int(reward) == -1:
+            self.task_completed = False
+        else:
+            self.task_completed = True
         # if len(self.actions) > 0:
         #     self.actions[-1] = np.append(self.actions[-1], [reward])  # only for demo
         # 这个地方因为继承了gym所以不能修改这里，需要维持同样是四个

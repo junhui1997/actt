@@ -41,12 +41,12 @@ def main(args):
     success = []
     episode_idx = 0
     while episode_idx < num_episodes:
-        onscreen_render = True
+        onscreen_render = 0
         print(f'{episode_idx=}')
         print('Rollout out EE space scripted policy')
         # setup the environment
         env = gym.make(task_name)
-        seeds = np.random.randint(0, 1001)
+        seeds = np.random.randint(0, 2**32-1)
         # 同时设定这两个就可以保证可复现性
         env.seed(seeds)
         np.random.seed(seeds)
@@ -84,7 +84,7 @@ def main(args):
         episode_return = np.sum([ts.reward for ts in episode])  # episode_return反映的是奖励的水平
         episode_max_reward = np.max([ts.reward for ts in episode])  # 获取最大的reward
         # env需要写max_reward
-        if episode_max_reward == 0:
+        if episode_max_reward == surgical_tasks_joint[task_name]['max_reward']:
             print(f"{episode_idx=} Successful, {episode_return=}")
         else:
             print(f"{episode_idx=} Failed")
@@ -99,7 +99,7 @@ def main(args):
         del env
         # 一定要删除env残存的信息会导致莫名奇妙的抖动
 
-        onscreen_render = True
+        onscreen_render = 0
         # setup the environment
         print('Replaying joint commands')
         # 这里因为用的同一个env所以就不用再make一遍了，但是为了保证数据一致还得重新设置一下seeds
@@ -129,8 +129,8 @@ def main(args):
                 plt.pause(0.02)
         episode_return = np.sum([ts.reward for ts in episode_replay[1:]])
         episode_max_reward = np.max([ts.reward for ts in episode_replay[1:]])
-        print(episode_max_reward, 0)
-        if episode_max_reward == 0:
+        print('episode reward/ env reward: ', episode_max_reward, surgical_tasks_joint[task_name]['max_reward'])
+        if episode_max_reward == surgical_tasks_joint[task_name]['max_reward']:
             success.append(1)
             print(f"{episode_idx=} Successful, {episode_return=}")
         else:

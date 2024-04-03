@@ -71,6 +71,7 @@ class BiPegTransfer(PsmsEnv):
                             np.array(self.POSE_BOARD[0]) * self.SCALING,
                             p.getQuaternionFromEuler(self.POSE_BOARD[1]),
                             globalScaling=self.SCALING)
+        self.peg_borad = obj_id
         self.obj_ids['fixed'].append(obj_id)  # 1
         self._pegs = np.arange(12)
         np.random.shuffle(self._pegs[:6])
@@ -89,6 +90,7 @@ class BiPegTransfer(PsmsEnv):
             self.obj_ids['rigid'].append(obj_id)
         self._blocks = np.array(self.obj_ids['rigid'][-num_blocks:])
         np.random.shuffle(self._blocks)
+        self.target_block = self._blocks[0]
         for obj_id in self._blocks[:1]:
             # change color to red
             p.changeVisualShape(obj_id, -1, rgbaColor=(255 / 255, 69 / 255, 58 / 255, 1))
@@ -240,6 +242,26 @@ class BiPegTransfer(PsmsEnv):
         self.ecm.move_joint(joint_positions[:self.ecm.DoF])
     def _reset_ecm_pos(self):
         self.ecm.reset_joint(self.QPOS_ECM)
+
+    def get_reward(self):
+        # 右边的是psm1,左边的是2
+        # 如果是双臂的话右边的index是1,左边的index是4
+        psm1_block = len(p.getContactPoints(1, self.target_block)) > 0
+        psm2_block = len(p.getContactPoints(4, self.target_block)) > 0
+        borad_block = len(p.getContactPoints(self.peg_borad, self.target_block)) > 0
+        if self.task_completed:
+            return 4
+        elif psm2_block and borad_block:
+            # 左边接触到block，但是没有举起
+            return 1
+        elif psm2_block and not borad_block:
+            # 左边成功举起
+            return 2
+        elif psm1_block and not borad_block:
+            # 右边夹起成功
+            return 3
+        else:
+            return 0
 # import math
 # from haptic_src.test import initTouch_right, closeTouch_right, getDeviceAction_right, startScheduler, stopScheduler
 # from haptic_src.test import initTouch_left, closeTouch_left, getDeviceAction_left

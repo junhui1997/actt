@@ -527,13 +527,13 @@ def parse_ts(ts, env, action=None, is_joint=False, is_bi=False):
     if is_joint:
         # 使用关节空间进行训练时候qpos即是指令也是观测值， 不需要使用action这条信息
         if isinstance(ts, dict):
-            new_ts.reward = -1
+            new_ts.reward = 0
             if is_bi:
                 new_ts.observation['qpos'] = env.psm1.get_current_joint_position() + [-0.8] + env.psm2.get_current_joint_position() + [-0.8]# 六个关节数值和夹爪，夹爪信息开
             else:
                 new_ts.observation['qpos'] = env.psm1.get_current_joint_position() + [0.5]  # 六个关节数值和夹爪，夹爪信息开
         else:
-            new_ts.reward = ts[1]
+            new_ts.reward = env.get_reward()
             if is_bi:
                 new_ts.observation['qpos'] = env.psm1.get_current_joint_position() + [action[4]] + env.psm2.get_current_joint_position() + [action[-1]]
             else:
@@ -544,10 +544,10 @@ def parse_ts(ts, env, action=None, is_joint=False, is_bi=False):
         else:
             state_dim = 7
         if isinstance(ts, dict):
-            new_ts.reward = -1
+            new_ts.reward = 0
             new_ts.observation['qpos'] = ts['observation'][:state_dim]
         else:
-            new_ts.reward = ts[1]
+            new_ts.reward = env.get_reward()
             new_ts.observation['qpos'] = ts[0]['observation'][:state_dim]  # 对应robot state：位置+欧拉角+夹爪
             new_ts.observation['action'] = action  # .tolist()
     ecm_img, mask = env.ecm.render_image(640, 480)  # 注意这里是反着写的
@@ -558,7 +558,6 @@ def parse_ts(ts, env, action=None, is_joint=False, is_bi=False):
     new_ts.observation['images']['ecm'] = ecm_img
     new_ts.observation['images']['top'] = top_img
     new_ts.observation['images']['front'] = front_img
-    print(env.get_reward())
     # new_ts.observation['images']['human'] = human_img
     return new_ts
 

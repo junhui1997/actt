@@ -82,6 +82,7 @@ class NeedleReach(PsmEnv):
                             p.getQuaternionFromEuler((0, 0, yaw)),
                             useFixedBase=False,
                             globalScaling=self.SCALING)
+        self.needle_id = obj_id
         p.changeVisualShape(obj_id, -1, specularColor=(80, 80, 80))
         self.obj_ids['rigid'].append(obj_id)  # 0
         self.obj_id, self.obj_link1 = self.obj_ids['rigid'][0], 1
@@ -121,6 +122,19 @@ class NeedleReach(PsmEnv):
 
     def _reset_ecm_pos(self):
         self.ecm.reset_joint(self.QPOS_ECM)
+
+    def get_reward(self):
+        # 这俩始终不接触所以不能这么写
+        # psm_needle = len(p.getContactPoints(self.obj_link1, self.needle_id)) > 0
+        # # 如果针和psm ee接触，返回1
+        # if psm_needle:
+        #     return 1
+        # else:
+        #     return 0
+        if self.task_completed:
+            return 1
+        else:
+            return 0
 
 
 if __name__ == "__main__":

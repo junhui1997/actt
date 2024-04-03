@@ -231,7 +231,7 @@ class NeedleRegrasp(PsmsEnv):
         psm1_needle = len(p.getContactPoints(1, self.needle_id)) > 0
         psm2_needle = len(p.getContactPoints(self.obj_link1, self.needle_id)) > 0
         table_needle = len(p.getContactPoints(self.table_id, self.needle_id)) > 0
-        print(psm1_needle, psm2_needle, table_needle)
+        # print(psm1_needle, psm2_needle, table_needle)
         # contact_points_ee = p.getContactPoints(self.psm1_ee, self.needle_id)
         # 如果桌面针接触那么返回0,不然返回1
         if psm2_needle and psm1_needle:

@@ -83,7 +83,8 @@ def get_args_parser():
     # for all
     parser.add_argument('--state_dim', action='store', type=int, default=14, help='state dim', required=False)
     parser.add_argument('--is_surgical', action='store_true', help='if is surgical or not ', required=False)
-    
+    parser.add_argument('--is_joint', action='store_true', help='absolute joint control or increament control ', required=False)
+
     return parser
 
 
