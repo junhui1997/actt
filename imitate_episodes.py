@@ -1,3 +1,6 @@
+#!/usr/bin/env Python
+# coding=utf-8
+
 import torch
 import numpy as np
 import os
@@ -313,12 +316,16 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
     else:
         post_process = lambda a: a * stats['action_std'] + stats['action_mean']
 
-    if config['is_joint']:
-        surgical_config = surgical_tasks_joint
-        is_surgical_joint = True
-    else:
-        surgical_config = surgical_tasks
-        is_surgical_joint = False
+    if is_surgical:
+        # for surgical task
+        if config['is_joint']:
+            surgical_config = surgical_tasks_joint
+            is_surgical_joint = True
+        else:
+            surgical_config = surgical_tasks
+            is_surgical_joint = False
+        is_bimanul = surgical_config[task_name]['is_bimanual']
+
 
     # load environment
     if real_robot:
@@ -364,9 +371,15 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
         elif 'sim_insertion' in task_name:
             BOX_POSE[0] = np.concatenate(sample_insertion_pose())  # used in sim reset
 
+        # there are some bugs in reset the bimanual env, so each test env we delete the env and reload them
+        # not sure if bipeg has the same problem
+        if task_name in ['NeedleRegrasp-v0', 'BiPegTransfer-v0']:
+            del env
+            env = gym.make(task_name)
+
         ts = env.reset()
         if is_surgical:
-            ts = parse_ts(ts, env, is_joint=is_surgical_joint)
+            ts = parse_ts(ts, env, is_joint=is_surgical_joint, is_bi=is_bimanul)
         ### onscreen render
         if onscreen_render:
             ax = plt.subplot()
@@ -489,7 +502,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
                 time4 = time.time()
                 raw_action = raw_action.squeeze(0).cpu().numpy()
                 action = post_process(raw_action)
-                if len(action) > 10:
+                if len(action) > 14:
                     target_qpos = action[:-2]  # 双臂时候
                 else:
                     target_qpos = action  # 单臂时候直接进行运算 to_modify
@@ -514,12 +527,12 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
                 if real_robot:
                     ts = env.step(target_qpos, base_action)
                 else:
-                    if is_surgical_joint:
+                    if is_surgical and is_surgical_joint:
                         ts = env.step_ee(target_qpos)
                     else:
                         ts = env.step(target_qpos)
                     if is_surgical:
-                        ts = parse_ts(ts, env, target_qpos, is_joint=is_surgical_joint)
+                        ts = parse_ts(ts, env, target_qpos, is_joint=is_surgical_joint, is_bi=is_bimanul)
                 # print('step env: ', time.time() - time5)
 
                 ### for visualization
@@ -658,7 +671,7 @@ def train_bc(train_dataloader, val_dataloader, config):
             ckpt_name = f'policy_step_{step}_seed_{seed}.ckpt'
             ckpt_path = os.path.join(ckpt_dir, ckpt_name)
             torch.save(policy.serialize(), ckpt_path)
-            success, _ = eval_bc(config, ckpt_name, save_episode=True, num_rollouts=10)  # 修改这里是训练时候的测试次数
+            success, _ = eval_bc(config, ckpt_name, save_episode=True, num_rollouts=20)  # 修改这里是训练时候的测试次数
             wandb.log({'success': success}, step=step)
 
         # training

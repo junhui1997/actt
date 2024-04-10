@@ -13,9 +13,12 @@ from typing import Optional, List
 import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
-
+from .retention import MultiScaleRetention, SimpleRetention
+from rotary_embedding_torch import RotaryEmbedding
 import IPython
+
 e = IPython.embed
+
 
 class Transformer(nn.Module):
 
@@ -51,15 +54,16 @@ class Transformer(nn.Module):
 
     def forward(self, src, mask, query_embed, pos_embed, latent_input=None, proprio_input=None, additional_pos_embed=None):
         # TODO flatten only when input has H and W
-        if len(src.shape) == 4: # has H and W
+        if len(src.shape) == 4:  # has H and W
             # flatten NxCxHxW to HWxNxC
             bs, c, h, w = src.shape
             src = src.flatten(2).permute(2, 0, 1)  # flatten(2)代表展平了从index2及以后的维数 # [h*w,bs,c]
             pos_embed = pos_embed.flatten(2).permute(2, 0, 1).repeat(1, bs, 1)  # pos_embed[1,c,h,w]->[1,c,h*w]->[h*w,1,c]-[h*w,bs,c]
-            query_embed = query_embed.unsqueeze(1).repeat(1, bs, 1)     # query_embed [chunk_size,c]->[chunk_size,bs,c]
+            query_embed = query_embed.unsqueeze(1).repeat(1, bs, 1)  # query_embed [chunk_size,c]->[chunk_size,bs,c]
             # mask = mask.flatten(1)
 
-            additional_pos_embed = additional_pos_embed.unsqueeze(1).repeat(1, bs, 1)  # seq, bs, dim # [2,512]->[2,bs,512]这里的parameter反映的就是张量的大小 #！！这里的2是learned position embedding for proprio and latent
+            additional_pos_embed = additional_pos_embed.unsqueeze(1).repeat(1, bs,
+                                                                            1)  # seq, bs, dim # [2,512]->[2,bs,512]这里的parameter反映的就是张量的大小 #！！这里的2是learned position embedding for proprio and latent
             pos_embed = torch.cat([additional_pos_embed, pos_embed], axis=0)
 
             addition_input = torch.stack([latent_input, proprio_input], axis=0)  # latent_input:[batch_size,dim] proprio_input:[batch_size,dim]->[2,batch_size,dim]
@@ -72,12 +76,13 @@ class Transformer(nn.Module):
             pos_embed = pos_embed.unsqueeze(1).repeat(1, bs, 1)
             query_embed = query_embed.unsqueeze(1).repeat(1, bs, 1)
 
-        tgt = torch.zeros_like(query_embed)
-        memory = self.encoder(src, src_key_padding_mask=mask, pos=pos_embed)
+        tgt = torch.zeros_like(query_embed)  # [s,b,c]
+        memory = self.encoder(src, src_key_padding_mask=mask, pos=pos_embed)  # [h*w+2,bs,c]
         hs = self.decoder(tgt, memory, memory_key_padding_mask=mask,
                           pos=pos_embed, query_pos=query_embed)  # [layer,chunk_size,bs,dim]
         hs = hs.transpose(1, 2)  # [layer,bs, chunk_size,dim]
         return hs
+
 
 class TransformerEncoder(nn.Module):
 
@@ -143,7 +148,53 @@ class TransformerDecoder(nn.Module):
 
         return output.unsqueeze(0)
 
+# this is retention
+# class TransformerEncoderLayer(nn.Module):
+#
+#     def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1,
+#                  activation="gelu", normalize_before=False):
+#         super().__init__()
+#         # batch_first默认是false，所以第二个维度是batch
+#         self.retention = MultiScaleRetention(hidden_size=d_model, heads=nhead, double_v_dim=False)
+#         # Implementation of Feedforward model
+#         self.linear1 = nn.Linear(d_model, dim_feedforward)
+#         self.dropout = nn.Dropout(dropout)
+#         self.linear2 = nn.Linear(dim_feedforward, d_model)
+#
+#         self.norm1 = nn.LayerNorm(d_model)
+#         self.norm2 = nn.LayerNorm(d_model)
+#         self.dropout1 = nn.Dropout(dropout)
+#         self.dropout2 = nn.Dropout(dropout)
+#
+#         self.activation = _get_activation_fn(activation)
+#         self.normalize_before = normalize_before
+#
+#     def with_pos_embed(self, tensor, pos: Optional[Tensor]):
+#         return tensor if pos is None else tensor + pos
+#
+#     def forward_post(self,
+#                      src,
+#                      src_mask: Optional[Tensor] = None,
+#                      src_key_padding_mask: Optional[Tensor] = None,
+#                      pos: Optional[Tensor] = None):
+#         src2 = self.retention(src.permute(1, 0, 2)).permute(1, 0, 2)
+#         src = src + self.dropout1(src2)
+#         src = self.norm1(src)
+#         src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
+#         src = src + self.dropout2(src2)
+#         src = self.norm2(src)
+#         return src
+#
+#     def forward(self, src,
+#                 src_mask: Optional[Tensor] = None,
+#                 src_key_padding_mask: Optional[Tensor] = None,
+#                 pos: Optional[Tensor] = None):
+#         if self.normalize_before:
+#             return self.forward_pre(src, src_mask, src_key_padding_mask, pos)
+#         return self.forward_post(src, src_mask, src_key_padding_mask, pos)
 
+
+# this is attention
 class TransformerEncoderLayer(nn.Module):
 
     def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1,
@@ -163,7 +214,7 @@ class TransformerEncoderLayer(nn.Module):
 
         self.activation = _get_activation_fn(activation)
         self.normalize_before = normalize_before
-
+        self.rotary_emb = RotaryEmbedding(dim = d_model) #rope
     def with_pos_embed(self, tensor, pos: Optional[Tensor]):
         return tensor if pos is None else tensor + pos
 
@@ -173,6 +224,8 @@ class TransformerEncoderLayer(nn.Module):
                      src_key_padding_mask: Optional[Tensor] = None,
                      pos: Optional[Tensor] = None):
         q = k = self.with_pos_embed(src, pos)
+        # q = self.rotary_emb.rotate_queries_or_keys(q) #rope
+        # k = self.rotary_emb.rotate_queries_or_keys(k) #rope
         src2 = self.self_attn(q, k, value=src, attn_mask=src_mask,
                               key_padding_mask=src_key_padding_mask)[0]
         src = src + self.dropout1(src2)
@@ -227,6 +280,7 @@ class TransformerDecoderLayer(nn.Module):
         self.activation = _get_activation_fn(activation)
         self.normalize_before = normalize_before
 
+        self.rotary_emb = RotaryEmbedding(dim=d_model) #rope
     def with_pos_embed(self, tensor, pos: Optional[Tensor]):
         return tensor if pos is None else tensor + pos
 
@@ -238,6 +292,8 @@ class TransformerDecoderLayer(nn.Module):
                      pos: Optional[Tensor] = None,
                      query_pos: Optional[Tensor] = None):
         q = k = self.with_pos_embed(tgt, query_pos)
+        # q = self.rotary_emb.rotate_queries_or_keys(q)  # rope
+        # k = self.rotary_emb.rotate_queries_or_keys(k)  # rope
         tgt2 = self.self_attn(q, k, value=tgt, attn_mask=tgt_mask,
                               key_padding_mask=tgt_key_padding_mask)[0]
         tgt = tgt + self.dropout1(tgt2)

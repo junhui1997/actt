@@ -34,7 +34,12 @@ class DiffusionPolicy(nn.Module):
         self.num_kp = 32
         self.feature_dimension = 64
         self.ac_dim = args_override['action_dim'] # 14 + 2
-        self.obs_dim = self.feature_dimension * len(self.camera_names) + 14 # camera features and proprio
+        # to_modify # 16 is the default aloha
+        if self.ac_dim == 16:
+            additional_dim = 14
+        else:
+            additional_dim = args_override['state_dim']
+        self.obs_dim = self.feature_dimension * len(self.camera_names) + additional_dim # camera features and proprio #原本是14
 
         backbones = []
         pools = []

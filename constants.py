@@ -2,36 +2,36 @@ import pathlib
 import os
 
 surgical_tasks ={'NeedlePick-v0':{
-        'action_dim': 7,
-        'state_dim': 5,
+        'action_dim': 5,
+        'state_dim': 7,
         'is_bimanual': False,
         'episode_len': 50,  # for collect data
         'max_reward':2
     },
     'NeedleReach-v0':{
-        'action_dim': 7,
-        'state_dim': 5,
+        'action_dim': 5,
+        'state_dim': 7,
         'is_bimanual': False,
         'episode_len': 50,  # for collect data
         'max_reward':1
     },
     'NeedleRegrasp-v0':{
-        'action_dim': 14,
-        'state_dim': 10,
+        'action_dim': 10,
+        'state_dim': 14,
         'is_bimanual': True,
         'episode_len': 50,  # for collect data
         'max_reward':2
     },
     'PegTransfer-v0':{
-        'action_dim': 7,
-        'state_dim': 5,
+        'action_dim': 5,
+        'state_dim': 7,
         'is_bimanual': False,
         'episode_len': 100,  # for collect data
         'max_reward':3
     },
     'BiPegTransfer-v0':{
-        'action_dim': 14,
-        'state_dim': 10,
+        'action_dim': 10,
+        'state_dim': 14,
         'is_bimanual': True,
         'episode_len': 100,  # for collect data
         'max_reward':4
@@ -72,7 +72,7 @@ surgical_tasks_joint ={'NeedlePick-v0':{
         'max_reward':4
     }}
 ### Task parameters
-DATA_DIR = '/home/zfu/interbotix_ws/src/act/data' if os.getlogin() == 'zfu' else '/media/u/新加卷/all_code/act-plus-plus/dataset_m'
+DATA_DIR = '/home/zfu/interbotix_ws/src/act/data' if os.getlogin() == 'zfu' else '/media/u/tt/all_code/act-plus-plus/dataset_m'
 SIM_TASK_CONFIGS = {
     'sim_transfer_cube_scripted':{
         'dataset_dir': DATA_DIR + '/sim_transfer_cube_scripted',   # '/sim_transfer_cube_scripted'
@@ -131,35 +131,66 @@ SIM_TASK_CONFIGS = {
     },
     
     'NeedlePick-v0':{
-        'dataset_dir': DATA_DIR + '/NeedlePick-v0-joint',
+        'dataset_dir': DATA_DIR + '/NeedlePick-v0-inc',
         'num_episodes': 100,
         'episode_len': 150,  # modify this
         'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
     },
     'NeedleReach-v0':{
-        'dataset_dir': DATA_DIR + '/NeedleReach-v0-joint',
+        'dataset_dir': DATA_DIR + '/NeedleReach-v0-inc',
         'num_episodes': 50,
         'episode_len': 50,  # modify this
         'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
     },
     'NeedleRegrasp-v0':{
-        'dataset_dir': DATA_DIR + '/NeedleRegrasp-v0-joint',
+        'dataset_dir': DATA_DIR + '/NeedleRegrasp-v0-inc',
         'num_episodes': 100,
         'episode_len': 150,  # modify this
         'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
     },
     'PegTransfer-v0':{
-        'dataset_dir': DATA_DIR + '/PegTransfer-v0-joint',
+        'dataset_dir': DATA_DIR + '/PegTransfer-v0-inc',
         'num_episodes': 100,
         'episode_len': 150,  # modify this
         'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
     },
     'BiPegTransfer-v0':{
-        'dataset_dir': DATA_DIR + '/BiPegTransfer-v0-joint',
+        'dataset_dir': DATA_DIR + '/BiPegTransfer-v0-inc',
         'num_episodes': 100,
         'episode_len': 150,  # modify this
         'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
     },
+
+    # 'NeedlePick-v0':{
+    #     'dataset_dir': DATA_DIR + '/NeedlePick-v0-joint',
+    #     'num_episodes': 100,
+    #     'episode_len': 150,  # modify this
+    #     'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
+    # },
+    # 'NeedleReach-v0':{
+    #     'dataset_dir': DATA_DIR + '/NeedleReach-v0-joint',
+    #     'num_episodes': 50,
+    #     'episode_len': 50,  # modify this
+    #     'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
+    # },
+    # 'NeedleRegrasp-v0':{
+    #     'dataset_dir': DATA_DIR + '/NeedleRegrasp-v0-joint',
+    #     'num_episodes': 100,
+    #     'episode_len': 150,  # modify this
+    #     'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
+    # },
+    # 'PegTransfer-v0':{
+    #     'dataset_dir': DATA_DIR + '/PegTransfer-v0-joint',
+    #     'num_episodes': 100,
+    #     'episode_len': 150,  # modify this
+    #     'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
+    # },
+    # 'BiPegTransfer-v0':{
+    #     'dataset_dir': DATA_DIR + '/BiPegTransfer-v0-joint',
+    #     'num_episodes': 100,
+    #     'episode_len': 150,  # modify this
+    #     'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
+    # },
 
 }
 

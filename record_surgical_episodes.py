@@ -92,10 +92,13 @@ def main(args):
 
         # clear unused variables
         del episode
+        del env
+        # 一定要删除env残存的信息会导致莫名奇妙的抖动
 
         # setup the environment
         print('Replaying joint commands')
         # 这里因为用的同一个env所以就不用再make一遍了，但是为了保证数据一致还得重新设置一下seeds
+        env = gym.make(task_name)
         env.seed(seeds)
         np.random.seed(seeds)
         ts = env.reset()

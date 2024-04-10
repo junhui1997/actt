@@ -9,6 +9,7 @@ from torch import nn
 from util.misc import NestedTensor
 
 import IPython
+from rotary_embedding_torch import RotaryEmbedding
 e = IPython.embed
 
 class PositionEmbeddingSine(nn.Module):
@@ -36,7 +37,7 @@ class PositionEmbeddingSine(nn.Module):
         not_mask = torch.ones_like(x[0, [0]])
         y_embed = not_mask.cumsum(1, dtype=torch.float32)
         x_embed = not_mask.cumsum(2, dtype=torch.float32)
-        if self.normalize:
+        if self.normalize: # True
             eps = 1e-6
             y_embed = y_embed / (y_embed[:, -1:, :] + eps) * self.scale
             x_embed = x_embed / (x_embed[:, :, -1:] + eps) * self.scale
@@ -51,6 +52,22 @@ class PositionEmbeddingSine(nn.Module):
         pos = torch.cat((pos_y, pos_x), dim=3).permute(0, 3, 1, 2)
         return pos
 
+class PositionEmbeddingRope(nn.Module):
+    """
+    Absolute pos embedding, learned.
+    """
+    def __init__(self, dim=64):
+        super().__init__()
+        self.rotary_emb = RotaryEmbedding(dim = dim, use_xpos = False)
+
+
+    def forward(self, x):
+        # 【b,d,h,w]-[b,h,w,d]
+        x = x.permute(0,2,3,1)
+        pos = self.rotary_emb.rotate_queries_or_keys(x) #rope
+        pos = pos.permute(0, 3, 1, 2)
+        pos = torch.mean(pos, dim=0).unsqueeze(0)
+        return pos
 
 class PositionEmbeddingLearned(nn.Module):
     """
@@ -87,6 +104,8 @@ def build_position_encoding(args):
         position_embedding = PositionEmbeddingSine(N_steps, normalize=True)
     elif args.position_embedding in ('v3', 'learned'):
         position_embedding = PositionEmbeddingLearned(N_steps)
+    elif args.position_embedding in ('rope'):
+        position_embedding = PositionEmbeddingRope(args.hidden_dim)
     else:
         raise ValueError(f"not supported {args.position_embedding}")
 

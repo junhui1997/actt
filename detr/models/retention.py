@@ -3,7 +3,7 @@ import math
 import torch
 import torch.nn as nn
 
-from xpos_relative_position import XPOS
+from .xpos_relative_position import XPOS
 
 class SimpleRetention(nn.Module):
     def __init__(self, hidden_size, gamma, head_size=None, double_v_dim=False):
