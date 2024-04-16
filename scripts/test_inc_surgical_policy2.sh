@@ -38,7 +38,7 @@ do
   for chunk_size in  40
 do
 python -u imitate_episodes.py \
---task_name $task_name --ckpt_dir checkpoint_m/$model/$task_name-inc/ --policy_class $model --kl_weight 200 --chunk_size $chunk_size --hidden_dim 512 --batch_size 12 --dim_feedforward 3200 --state_dim 14 --action_dim 14 --num_steps 50000 --lr 15e-6 --seed 0 --is_surgical  --eval_every 1250 --save_every 2500 --temporal_agg
+--task_name $task_name --ckpt_dir checkpoint_m/$model/$task_name-inc/ --policy_class $model --kl_weight 200 --chunk_size $chunk_size --hidden_dim 512 --batch_size 12 --dim_feedforward 3200 --state_dim 14 --action_dim 10 --num_steps 50000 --lr 15e-6 --seed 0 --is_surgical  --eval_every 1250 --save_every 2500 --temporal_agg
 done
 done
 done

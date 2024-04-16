@@ -129,68 +129,68 @@ SIM_TASK_CONFIGS = {
         'episode_len': 400,
         'camera_names': ['angle', 'top']  #, 'left_wrist', 'right_wrist' # 修改这里
     },
-    
-    'NeedlePick-v0':{
-        'dataset_dir': DATA_DIR + '/NeedlePick-v0-inc',
-        'num_episodes': 100,
-        'episode_len': 150,  # modify this
-        'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
-    },
-    'NeedleReach-v0':{
-        'dataset_dir': DATA_DIR + '/NeedleReach-v0-inc',
-        'num_episodes': 50,
-        'episode_len': 50,  # modify this
-        'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
-    },
-    'NeedleRegrasp-v0':{
-        'dataset_dir': DATA_DIR + '/NeedleRegrasp-v0-inc',
-        'num_episodes': 100,
-        'episode_len': 150,  # modify this
-        'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
-    },
-    'PegTransfer-v0':{
-        'dataset_dir': DATA_DIR + '/PegTransfer-v0-inc',
-        'num_episodes': 100,
-        'episode_len': 150,  # modify this
-        'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
-    },
-    'BiPegTransfer-v0':{
-        'dataset_dir': DATA_DIR + '/BiPegTransfer-v0-inc',
-        'num_episodes': 100,
-        'episode_len': 150,  # modify this
-        'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
-    },
-
+    # #inc
     # 'NeedlePick-v0':{
-    #     'dataset_dir': DATA_DIR + '/NeedlePick-v0-joint',
+    #     'dataset_dir': DATA_DIR + '/NeedlePick-v0-inc',
     #     'num_episodes': 100,
     #     'episode_len': 150,  # modify this
     #     'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
     # },
     # 'NeedleReach-v0':{
-    #     'dataset_dir': DATA_DIR + '/NeedleReach-v0-joint',
+    #     'dataset_dir': DATA_DIR + '/NeedleReach-v0-inc',
     #     'num_episodes': 50,
     #     'episode_len': 50,  # modify this
     #     'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
     # },
     # 'NeedleRegrasp-v0':{
-    #     'dataset_dir': DATA_DIR + '/NeedleRegrasp-v0-joint',
+    #     'dataset_dir': DATA_DIR + '/NeedleRegrasp-v0-inc',
     #     'num_episodes': 100,
     #     'episode_len': 150,  # modify this
     #     'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
     # },
     # 'PegTransfer-v0':{
-    #     'dataset_dir': DATA_DIR + '/PegTransfer-v0-joint',
+    #     'dataset_dir': DATA_DIR + '/PegTransfer-v0-inc',
     #     'num_episodes': 100,
     #     'episode_len': 150,  # modify this
     #     'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
     # },
     # 'BiPegTransfer-v0':{
-    #     'dataset_dir': DATA_DIR + '/BiPegTransfer-v0-joint',
+    #     'dataset_dir': DATA_DIR + '/BiPegTransfer-v0-inc',
     #     'num_episodes': 100,
     #     'episode_len': 150,  # modify this
     #     'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
     # },
+    # joint
+    'NeedlePick-v0':{
+        'dataset_dir': DATA_DIR + '/NeedlePick-v0-joint',
+        'num_episodes': 100,
+        'episode_len': 150,  # modify this
+        'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
+    },
+    'NeedleReach-v0':{
+        'dataset_dir': DATA_DIR + '/NeedleReach-v0-joint',
+        'num_episodes': 50,
+        'episode_len': 50,  # modify this
+        'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
+    },
+    'NeedleRegrasp-v0':{
+        'dataset_dir': DATA_DIR + '/NeedleRegrasp-v0-joint',
+        'num_episodes': 100,
+        'episode_len': 150,  # modify this
+        'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
+    },
+    'PegTransfer-v0':{
+        'dataset_dir': DATA_DIR + '/PegTransfer-v0-joint',
+        'num_episodes': 100,
+        'episode_len': 150,  # modify this
+        'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
+    },
+    'BiPegTransfer-v0':{
+        'dataset_dir': DATA_DIR + '/BiPegTransfer-v0-joint',
+        'num_episodes': 100,
+        'episode_len': 150,  # modify this
+        'camera_names': ['ecm', 'top', 'front']  #, 'left_wrist', 'right_wrist' # 修改这里
+    },
 
 }
 

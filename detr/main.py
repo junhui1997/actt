@@ -26,7 +26,7 @@ def get_args_parser():
                         help="Name of the convolutional backbone to use")
     parser.add_argument('--dilation', action='store_true',
                         help="If true, we replace stride with dilation in the last convolutional block (DC5)")
-    parser.add_argument('--position_embedding', default='sine', type=str, choices=('sine', 'learned', 'rope', 'ropex'),
+    parser.add_argument('--position_embedding', default='rope', type=str, choices=('sine', 'learned', 'rope', 'ropex'),
                         help="Type of positional embedding to use on top of the image features")
     parser.add_argument('--camera_names', default=[], type=list, # will be overridden
                         help="A list of camera names")

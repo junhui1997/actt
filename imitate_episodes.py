@@ -29,8 +29,9 @@ from detr.models.latent_model import Latent_Model_Transformer
 import imageio
 
 from sim_env import BOX_POSE
+torch.cuda.set_device(0)  # 这样cuda就会只分配一个gpu了，不然会均分到两个上面去
 
-# os.environ["WANDB_DISABLED"] = "true"
+#os.environ["WANDB_DISABLED"] = "true"
 os.environ["WANDB_API_KEY"] = "e7a9493a938ca7efec0cb4af510f601a70b38160"
 
 import IPython
