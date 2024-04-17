@@ -72,7 +72,7 @@ surgical_tasks_joint ={'NeedlePick-v0':{
         'max_reward':4
     }}
 ### Task parameters
-DATA_DIR = '/home/zfu/interbotix_ws/src/act/data' if os.getlogin() == 'zfu' else '/media/u/tt/all_code/act-plus-plus/dataset_m'
+DATA_DIR = '/home/zfu/interbotix_ws/src/act/data' if os.getlogin() == 'zfu' else 'dataset_m/'
 SIM_TASK_CONFIGS = {
     'sim_transfer_cube_scripted':{
         'dataset_dir': DATA_DIR + '/sim_transfer_cube_scripted',   # '/sim_transfer_cube_scripted'

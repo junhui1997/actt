@@ -170,7 +170,9 @@ def main(args):
         pickle.dump(config, f)
     # 如果处于eval模式则不进入训练，直接使用policy_last,然后退出
     if is_eval:
-        ckpt_names = [f'policy_last.ckpt']
+        print('eval mode')
+        # ckpt_names = [f'policy_step_72500_seed_0.ckpt'] #policy_last
+        ckpt_names = ['policy_step_{}_seed_0.ckpt'.format(str(i*2500)) for i in range(20, 40)]
         results = []
         for ckpt_name in ckpt_names:
             success_rate, avg_return = eval_bc(config, ckpt_name, save_episode=True, num_rollouts=10)
@@ -374,7 +376,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
 
         # there are some bugs in reset the bimanual env, so each test env we delete the env and reload them
         # not sure if bipeg has the same problem
-        if task_name in ['NeedleRegrasp-v0', 'BiPegTransfer-v0']:
+        if task_name in ['NeedleRegrasp-v0']:   #, 'BiPegTransfer-v0'
             del env
             env = gym.make(task_name)
 
