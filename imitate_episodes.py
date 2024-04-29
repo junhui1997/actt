@@ -31,8 +31,8 @@ import imageio
 from sim_env import BOX_POSE
 torch.cuda.set_device(0)  # 这样cuda就会只分配一个gpu了，不然会均分到两个上面去
 
-#os.environ["WANDB_DISABLED"] = "true"
-os.environ["WANDB_API_KEY"] = "e7a9493a938ca7efec0cb4af510f601a70b38160"
+os.environ["WANDB_DISABLED"] = "true"
+#os.environ["WANDB_API_KEY"] = "e7a9493a938ca7efec0cb4af510f601a70b38160"
 
 import IPython
 
@@ -348,7 +348,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
     query_frequency = policy_config['num_queries']
     if temporal_agg:
         query_frequency = 1
-        num_queries = policy_config['num_queries']
+        num_queries = policy_config['num_queries']  # 就是chunksize
     if real_robot:
         BASE_DELAY = 13
         query_frequency -= BASE_DELAY
@@ -376,7 +376,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
 
         # there are some bugs in reset the bimanual env, so each test env we delete the env and reload them
         # not sure if bipeg has the same problem
-        if task_name in ['NeedleRegrasp-v0']:   #, 'BiPegTransfer-v0'
+        if task_name in ['NeedleRegrasp-v0', 'BiPegTransfer-v0']:   #, 'BiPegTransfer-v0'
             del env
             env = gym.make(task_name)
 

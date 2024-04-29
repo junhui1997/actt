@@ -8,6 +8,7 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 from .backbone import build_backbone
 from .transformer import build_transformer, TransformerEncoder, TransformerEncoderLayer
+from rotary_embedding_torch import RotaryEmbedding
 
 import numpy as np
 
@@ -32,6 +33,10 @@ def get_sinusoid_encoding_table(n_position, d_hid):
 
     return torch.FloatTensor(sinusoid_table).unsqueeze(0)
 
+def get_rope_encoding_table(n_position, d_hid):
+    rotary_emb = RotaryEmbedding(dim=d_hid, use_xpos=False)
+
+    return 0
 
 class DETRVAE(nn.Module):
     """ This is the DETR module that performs object detection """
@@ -115,7 +120,7 @@ class DETRVAE(nn.Module):
                 pos_embed = pos_embed.permute(1, 0, 2)  # (seq+2, 1, hidden_dim)
                 # query model
                 encoder_output = self.encoder(encoder_input, pos=pos_embed, src_key_padding_mask=is_pad)
-                encoder_output = encoder_output[0]  # [batch_size,dim] take cls output only # 上面虽然是+2,但是cls只有一个
+                encoder_output = encoder_output[0]  # [batch_size,dim] take cls output only # 上面虽然是+2,但是cls只有一个 # 这里的0代表是只取了第一个元素
                 latent_info = self.latent_proj(encoder_output)   #[bs, 2*latten_dim]
                 
                 if self.vq:
@@ -129,7 +134,7 @@ class DETRVAE(nn.Module):
                     mu = logvar = None
                 else:
                     probs = binaries = None
-                    # mu，logvar分别是前和后cls token中的信息
+                    # mu，logvar分别是前一半和后一半cls token中的信息
                     mu = latent_info[:, :self.latent_dim]
                     logvar = latent_info[:, self.latent_dim:]
                     latent_sample = reparametrize(mu, logvar)  # （bs,latent_dim)

@@ -10,13 +10,16 @@ from util.misc import NestedTensor
 
 import IPython
 from rotary_embedding_torch import RotaryEmbedding
+
 e = IPython.embed
+
 
 class PositionEmbeddingSine(nn.Module):
     """
     This is a more standard version of the position embedding, very similar to the one
     used by the Attention is all you need paper, generalized to work on images.
     """
+
     def __init__(self, num_pos_feats=64, temperature=10000, normalize=False, scale=None):
         super().__init__()
         self.num_pos_feats = num_pos_feats
@@ -37,7 +40,7 @@ class PositionEmbeddingSine(nn.Module):
         not_mask = torch.ones_like(x[0, [0]])
         y_embed = not_mask.cumsum(1, dtype=torch.float32)
         x_embed = not_mask.cumsum(2, dtype=torch.float32)
-        if self.normalize: # True
+        if self.normalize:  # True
             eps = 1e-6
             y_embed = y_embed / (y_embed[:, -1:, :] + eps) * self.scale
             x_embed = x_embed / (x_embed[:, :, -1:] + eps) * self.scale
@@ -52,27 +55,30 @@ class PositionEmbeddingSine(nn.Module):
         pos = torch.cat((pos_y, pos_x), dim=3).permute(0, 3, 1, 2)
         return pos
 
+
 class PositionEmbeddingRope(nn.Module):
     """
     Absolute pos embedding, learned.
     """
+
     def __init__(self, dim=64):
         super().__init__()
-        self.rotary_emb = RotaryEmbedding(dim = dim, use_xpos = False)
-
+        self.rotary_emb = RotaryEmbedding(dim=dim, use_xpos=False)
 
     def forward(self, x):
         # 【b,d,h,w]-[b,h,w,d]
-        x = x.permute(0,2,3,1)
-        pos = self.rotary_emb.rotate_queries_or_keys(x) #rope
+        x = x.permute(0, 2, 3, 1)
+        pos = self.rotary_emb.rotate_queries_or_keys(x)  #rope
         pos = pos.permute(0, 3, 1, 2)
         pos = torch.mean(pos, dim=0).unsqueeze(0)
         return pos
+
 
 class PositionEmbeddingLearned(nn.Module):
     """
     Absolute pos embedding, learned.
     """
+
     def __init__(self, num_pos_feats=256):
         super().__init__()
         self.row_embed = nn.Embedding(50, num_pos_feats)
