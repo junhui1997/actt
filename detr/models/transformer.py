@@ -21,25 +21,24 @@ import IPython
 
 e = IPython.embed
 
-use_rope = True
 class Transformer(nn.Module):
 
     def __init__(self, d_model=512, nhead=8, num_encoder_layers=6,
                  num_decoder_layers=6, dim_feedforward=2048, dropout=0.1,
                  activation="relu", normalize_before=False,
-                 return_intermediate_dec=False):
+                 return_intermediate_dec=False, use_rope=False):
         super().__init__()
         # normalize_before是在attn和FF前进行norm，正常我们使用的normalize_post
         # encoder部分比较普通
         # decoder layer也一致
         # decoder 返回中间量是以stack形式返回了每一层的输出结果，为了保持统一，这里如果没有返回中间量，最后结果也 unsqueeze(0)
         encoder_layer = TransformerEncoderLayer(d_model, nhead, dim_feedforward,
-                                                dropout, activation, normalize_before)
+                                                dropout, activation, normalize_before, use_rope)
         encoder_norm = nn.LayerNorm(d_model) if normalize_before else None
         self.encoder = TransformerEncoder(encoder_layer, num_encoder_layers, encoder_norm)
 
         decoder_layer = TransformerDecoderLayer(d_model, nhead, dim_feedforward,
-                                                dropout, activation, normalize_before)
+                                                dropout, activation, normalize_before, use_rope)
         decoder_norm = nn.LayerNorm(d_model)
         self.decoder = TransformerDecoder(decoder_layer, num_decoder_layers, decoder_norm,
                                           return_intermediate=return_intermediate_dec)
@@ -200,10 +199,10 @@ class TransformerDecoder(nn.Module):
 class TransformerEncoderLayer(nn.Module):
 
     def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1,
-                 activation="relu", normalize_before=False):
+                 activation="relu", normalize_before=False, use_rope=False):
         super().__init__()
         # batch_first默认是false，所以第二个维度是batch
-        self.self_attn = mha2(d_model, nhead, dropout=dropout)
+        self.self_attn = mha2(d_model, nhead, dropout=dropout, use_rope=use_rope) if use_rope else nn.MultiheadAttention(d_model, nhead, dropout=dropout)
         # Implementation of Feedforward model
         self.linear1 = nn.Linear(d_model, dim_feedforward)
         self.dropout = nn.Dropout(dropout)
@@ -216,8 +215,11 @@ class TransformerEncoderLayer(nn.Module):
 
         self.activation = _get_activation_fn(activation)
         self.normalize_before = normalize_before
-        self.rotary_emb = RotaryEmbedding(dim = d_model) #rope
+        self.use_rope = use_rope
     def with_pos_embed(self, tensor, pos: Optional[Tensor]):
+        # block the norm embedding when use rope
+        if self.use_rope:
+            return tensor
         return tensor if pos is None else tensor + pos
 
     def forward_post(self,
@@ -263,10 +265,10 @@ class TransformerEncoderLayer(nn.Module):
 class TransformerDecoderLayer(nn.Module):
 
     def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1,
-                 activation="relu", normalize_before=False):
+                 activation="relu", normalize_before=False, use_rope=False):
         super().__init__()
-        self.self_attn = mha2(d_model, nhead, dropout=dropout)
-        self.multihead_attn = mha2(d_model, nhead, dropout=dropout)
+        self.self_attn = mha2(d_model, nhead, dropout=dropout, use_rope=use_rope) if use_rope else nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        self.multihead_attn = mha2(d_model, nhead, dropout=dropout, use_rope=use_rope) if use_rope else nn.MultiheadAttention(d_model, nhead, dropout=dropout)
         # Implementation of Feedforward model
         self.linear1 = nn.Linear(d_model, dim_feedforward)
         self.dropout = nn.Dropout(dropout)
@@ -282,8 +284,10 @@ class TransformerDecoderLayer(nn.Module):
         self.activation = _get_activation_fn(activation)
         self.normalize_before = normalize_before
 
-        self.rotary_emb = RotaryEmbedding(dim=d_model) #rope
+        self.use_rope = use_rope
     def with_pos_embed(self, tensor, pos: Optional[Tensor]):
+        if self.use_rope:
+            return tensor
         return tensor if pos is None else tensor + pos
 
     def forward_post(self, tgt, memory,
@@ -354,6 +358,7 @@ def _get_clones(module, N):
 
 
 def build_transformer(args):
+    use_rope = args.position_embedding =='rope'
     return Transformer(
         d_model=args.hidden_dim,
         dropout=args.dropout,
@@ -363,6 +368,7 @@ def build_transformer(args):
         num_decoder_layers=args.dec_layers,
         normalize_before=args.pre_norm,
         return_intermediate_dec=True,
+        use_rope=use_rope
     )
 
 

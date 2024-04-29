@@ -63,14 +63,15 @@ class PositionEmbeddingRope(nn.Module):
 
     def __init__(self, dim=64):
         super().__init__()
-        self.rotary_emb = RotaryEmbedding(dim=dim, use_xpos=False)
+        # do nothing here just for the organization of code
 
     def forward(self, x):
+        pos = torch.zeros_like(x[0:1]).to(x.device)  # 【1,x.shape[1], x.shape[2],x.shape[3]]
         # 【b,d,h,w]-[b,h,w,d]
-        x = x.permute(0, 2, 3, 1)
-        pos = self.rotary_emb.rotate_queries_or_keys(x)  #rope
-        pos = pos.permute(0, 3, 1, 2)
-        pos = torch.mean(pos, dim=0).unsqueeze(0)
+        # x = x.permute(0, 2, 3, 1)
+        # pos = self.rotary_emb.rotate_queries_or_keys(x)  #rope
+        # pos = pos.permute(0, 3, 1, 2)
+        # pos = torch.mean(pos, dim=0).unsqueeze(0)
         return pos
 
 

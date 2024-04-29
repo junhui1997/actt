@@ -3,8 +3,7 @@ from typing import Optional, List
 
 import torch
 from torch import nn
-
-
+from rotary_embedding_torch import RotaryEmbedding
 
 
 class PrepareForMultiHeadAttention(nn.Module):
@@ -64,7 +63,7 @@ class MultiHeadAttention(nn.Module):
     Softmax is calculated along the axis of of the sequence (or time).
     """
 
-    def __init__(self,  d_model: int, heads: int, dropout: float = 0.0, bias: bool = True):
+    def __init__(self, d_model: int, heads: int, dropout: float = 0.0, bias: bool = True, use_rope=False):
         """
         * `heads` is the number of heads.
         * `d_model` is the number of features in the `query`, `key` and `value` vectors.
@@ -94,6 +93,8 @@ class MultiHeadAttention(nn.Module):
 
         # We store attentions so that it can be used for logging, or other computations if needed
         self.attn = None
+        self.use_rope = use_rope
+        self.rotary_emb = RotaryEmbedding(dim=self.d_k//2)
 
     def get_scores(self, query: torch.Tensor, key: torch.Tensor):
         """
@@ -150,6 +151,10 @@ class MultiHeadAttention(nn.Module):
         key = self.key(key)
         value = self.value(value)
 
+        # rope [seq_len, batch_size, heads, d_k]->[batch_size, heads, seq_len, d_k]->[seq_len, batch_size, heads, d_k]
+        if self.use_rope:
+            query = self.rotary_emb.rotate_queries_or_keys(query.permute(1,2,0,3)).permute(2,0,1,3)
+            key = self.rotary_emb.rotate_queries_or_keys(key.permute(1, 2, 0, 3)).permute(2, 0, 1, 3)
         # Compute attention scores $Q K^\top$.
         # This gives a tensor of shape `[seq_len, seq_len, batch_size, heads]`.
         scores = self.get_scores(query, key)
@@ -164,7 +169,6 @@ class MultiHeadAttention(nn.Module):
         # $softmax$ attention along the key sequence dimension
         # $\underset{seq}{softmax}\Bigg(\frac{Q K^\top}{\sqrt{d_k}}\Bigg)$
         attn = self.softmax(scores)
-
 
         # Apply dropout
         attn = self.dropout(attn)
