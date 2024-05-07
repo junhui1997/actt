@@ -31,8 +31,8 @@ import imageio
 from sim_env import BOX_POSE
 torch.cuda.set_device(0)  # 这样cuda就会只分配一个gpu了，不然会均分到两个上面去
 
-os.environ["WANDB_DISABLED"] = "true"
-#os.environ["WANDB_API_KEY"] = "e7a9493a938ca7efec0cb4af510f601a70b38160"
+#os.environ["WANDB_DISABLED"] = "true"
+os.environ["WANDB_API_KEY"] = "e7a9493a938ca7efec0cb4af510f601a70b38160"
 
 import IPython
 
@@ -164,7 +164,7 @@ def main(args):
     config_path = os.path.join(ckpt_dir, 'config.pkl')
     expr_name = ckpt_dir.split('/')[-1]
     if not is_eval:
-        wandb.init(project="my_aloha", reinit=True, name=expr_name)
+        wandb.init(project="surrol", reinit=True, name=expr_name)
         wandb.config.update(config)
     with open(config_path, 'wb') as f:
         pickle.dump(config, f)

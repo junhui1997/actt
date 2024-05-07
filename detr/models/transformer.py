@@ -18,8 +18,10 @@ from rotary_embedding_torch import RotaryEmbedding
 from torch.nn import MultiheadAttention as mha1
 from .my_model.mha import MultiHeadAttention as mha2
 import IPython
+from mamba_ssm import Mamba
 
 e = IPython.embed
+use_mamba = True
 
 class Transformer(nn.Module):
 
@@ -203,6 +205,8 @@ class TransformerEncoderLayer(nn.Module):
         super().__init__()
         # batch_first默认是false，所以第二个维度是batch
         self.self_attn = mha2(d_model, nhead, dropout=dropout, use_rope=use_rope) if use_rope else nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        if use_mamba:
+            self.mamba = Mamba(d_model=d_model, d_state=16, d_conv=4, expand=1)  # Block expansion factor)
         # Implementation of Feedforward model
         self.linear1 = nn.Linear(d_model, dim_feedforward)
         self.dropout = nn.Dropout(dropout)
@@ -230,8 +234,11 @@ class TransformerEncoderLayer(nn.Module):
         q = k = self.with_pos_embed(src, pos)
         # q = self.rotary_emb.rotate_queries_or_keys(q) #rope
         # k = self.rotary_emb.rotate_queries_or_keys(k) #rope
-        src2 = self.self_attn(q, k, value=src, attn_mask=src_mask,
-                              key_padding_mask=src_key_padding_mask)[0]
+        if use_mamba:
+            src2 = self.mamba(q)
+        else:
+            src2 = self.self_attn(q, k, value=src, attn_mask=src_mask,
+                                  key_padding_mask=src_key_padding_mask)[0]
         src = src + self.dropout1(src2)
         src = self.norm1(src)
         src2 = self.linear2(self.dropout(self.activation(self.linear1(src))))
@@ -245,8 +252,11 @@ class TransformerEncoderLayer(nn.Module):
                     pos: Optional[Tensor] = None):
         src2 = self.norm1(src)
         q = k = self.with_pos_embed(src2, pos)  # 每一层都额外增加了位置编码的数值和正常的不太一样
-        src2 = self.self_attn(q, k, value=src2, attn_mask=src_mask,
-                              key_padding_mask=src_key_padding_mask)[0]
+        if use_mamba:
+            src2 = self.mamba(q)
+        else:
+            src2 = self.self_attn(q, k, value=src, attn_mask=src_mask,
+                                  key_padding_mask=src_key_padding_mask)[0]
         src = src + self.dropout1(src2)
         src2 = self.norm2(src)
         src2 = self.linear2(self.dropout(self.activation(self.linear1(src2))))
@@ -268,6 +278,8 @@ class TransformerDecoderLayer(nn.Module):
                  activation="relu", normalize_before=False, use_rope=False):
         super().__init__()
         self.self_attn = mha2(d_model, nhead, dropout=dropout, use_rope=use_rope) if use_rope else nn.MultiheadAttention(d_model, nhead, dropout=dropout)
+        if use_mamba:
+            self.mamba = Mamba(d_model=d_model, d_state=16, d_conv=4, expand=2)  # Block expansion factor)
         self.multihead_attn = mha2(d_model, nhead, dropout=dropout, use_rope=use_rope) if use_rope else nn.MultiheadAttention(d_model, nhead, dropout=dropout)
         # Implementation of Feedforward model
         self.linear1 = nn.Linear(d_model, dim_feedforward)
@@ -300,8 +312,11 @@ class TransformerDecoderLayer(nn.Module):
         q = k = self.with_pos_embed(tgt, query_pos)
         # q = self.rotary_emb.rotate_queries_or_keys(q)  # rope
         # k = self.rotary_emb.rotate_queries_or_keys(k)  # rope
-        tgt2 = self.self_attn(q, k, value=tgt, attn_mask=tgt_mask,
-                              key_padding_mask=tgt_key_padding_mask)[0]
+        if use_mamba:
+            tgt2 = self.mamba(q)
+        else:
+            tgt2 = self.self_attn(q, k, value=tgt, attn_mask=tgt_mask,
+                                  key_padding_mask=tgt_key_padding_mask)[0]
         tgt = tgt + self.dropout1(tgt2)
         tgt = self.norm1(tgt)
         # 没有mask
@@ -325,8 +340,11 @@ class TransformerDecoderLayer(nn.Module):
                     query_pos: Optional[Tensor] = None):
         tgt2 = self.norm1(tgt)
         q = k = self.with_pos_embed(tgt2, query_pos)
-        tgt2 = self.self_attn(q, k, value=tgt2, attn_mask=tgt_mask,
-                              key_padding_mask=tgt_key_padding_mask)[0]
+        if use_mamba:
+            tgt2 = self.mamba(q)
+        else:
+            tgt2 = self.self_attn(q, k, value=tgt, attn_mask=tgt_mask,
+                                  key_padding_mask=tgt_key_padding_mask)[0]
         tgt = tgt + self.dropout1(tgt2)
         tgt2 = self.norm2(tgt)
         tgt2 = self.multihead_attn(query=self.with_pos_embed(tgt2, query_pos),

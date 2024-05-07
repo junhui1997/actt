@@ -2,7 +2,6 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/robomimic_r2d2/robomimic" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/robomimic_r2d2/robomimic/act" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$" vcs="" />
   </component>
 </project>

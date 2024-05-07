@@ -2,10 +2,10 @@
 cd ..
 for model in ACT
 do
-  for task_name in PegTransfer-v0
+  for task_name in NeedlePick-v0
 do
 python -u imitate_episodes.py \
---task_name $task_name --ckpt_dir checkpoint_m/$model/$task_name-rope_tt42/ --policy_class $model --kl_weight 200 --chunk_size 20 --hidden_dim 512 --batch_size 6 --dim_feedforward 3200 --state_dim 7 --action_dim 7 --num_steps 120000 --lr 75e-7 --seed 42 --is_surgical  --eval_every 2500 --save_every 5000 --temporal_agg --is_joint
+--task_name $task_name --ckpt_dir checkpoint_m/$model/$task_name-mamba/ --policy_class $model --kl_weight 200 --chunk_size 20 --hidden_dim 512 --batch_size 6 --dim_feedforward 3200 --state_dim 7 --action_dim 7 --num_steps 120000 --lr 75e-7 --seed 0 --is_surgical  --eval_every 2500 --save_every 5000 --temporal_agg --is_joint
 done
 done
 
