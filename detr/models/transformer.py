@@ -21,7 +21,9 @@ import IPython
 from mamba_ssm import Mamba
 
 e = IPython.embed
-use_mamba = True
+use_encoder_mamba = True
+use_decoder_mamba = True
+
 
 class Transformer(nn.Module):
 
@@ -205,7 +207,7 @@ class TransformerEncoderLayer(nn.Module):
         super().__init__()
         # batch_first默认是false，所以第二个维度是batch
         self.self_attn = mha2(d_model, nhead, dropout=dropout, use_rope=use_rope) if use_rope else nn.MultiheadAttention(d_model, nhead, dropout=dropout)
-        if use_mamba:
+        if use_encoder_mamba:
             self.mamba = Mamba(d_model=d_model, d_state=16, d_conv=4, expand=1)  # Block expansion factor)
         # Implementation of Feedforward model
         self.linear1 = nn.Linear(d_model, dim_feedforward)
@@ -234,7 +236,7 @@ class TransformerEncoderLayer(nn.Module):
         q = k = self.with_pos_embed(src, pos)
         # q = self.rotary_emb.rotate_queries_or_keys(q) #rope
         # k = self.rotary_emb.rotate_queries_or_keys(k) #rope
-        if use_mamba:
+        if use_encoder_mamba:
             src2 = self.mamba(q)
         else:
             src2 = self.self_attn(q, k, value=src, attn_mask=src_mask,
@@ -252,7 +254,7 @@ class TransformerEncoderLayer(nn.Module):
                     pos: Optional[Tensor] = None):
         src2 = self.norm1(src)
         q = k = self.with_pos_embed(src2, pos)  # 每一层都额外增加了位置编码的数值和正常的不太一样
-        if use_mamba:
+        if use_encoder_mamba:
             src2 = self.mamba(q)
         else:
             src2 = self.self_attn(q, k, value=src, attn_mask=src_mask,
@@ -278,7 +280,7 @@ class TransformerDecoderLayer(nn.Module):
                  activation="relu", normalize_before=False, use_rope=False):
         super().__init__()
         self.self_attn = mha2(d_model, nhead, dropout=dropout, use_rope=use_rope) if use_rope else nn.MultiheadAttention(d_model, nhead, dropout=dropout)
-        if use_mamba:
+        if use_decoder_mamba:
             self.mamba = Mamba(d_model=d_model, d_state=16, d_conv=4, expand=2)  # Block expansion factor)
         self.multihead_attn = mha2(d_model, nhead, dropout=dropout, use_rope=use_rope) if use_rope else nn.MultiheadAttention(d_model, nhead, dropout=dropout)
         # Implementation of Feedforward model
@@ -312,7 +314,7 @@ class TransformerDecoderLayer(nn.Module):
         q = k = self.with_pos_embed(tgt, query_pos)
         # q = self.rotary_emb.rotate_queries_or_keys(q)  # rope
         # k = self.rotary_emb.rotate_queries_or_keys(k)  # rope
-        if use_mamba:
+        if use_decoder_mamba:
             tgt2 = self.mamba(q)
         else:
             tgt2 = self.self_attn(q, k, value=tgt, attn_mask=tgt_mask,
@@ -340,7 +342,7 @@ class TransformerDecoderLayer(nn.Module):
                     query_pos: Optional[Tensor] = None):
         tgt2 = self.norm1(tgt)
         q = k = self.with_pos_embed(tgt2, query_pos)
-        if use_mamba:
+        if use_decoder_mamba:
             tgt2 = self.mamba(q)
         else:
             tgt2 = self.self_attn(q, k, value=tgt, attn_mask=tgt_mask,
