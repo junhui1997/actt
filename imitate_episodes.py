@@ -669,7 +669,7 @@ def train_bc(train_dataloader, val_dataloader, config):
             print(summary_string)
 
         # evaluation
-        if (step > 0) and (step % eval_every == 0):
+        if (step > 50000) and (step % eval_every == 0):
             # first save then eval
             ckpt_name = f'policy_step_{step}_seed_{seed}.ckpt'
             ckpt_path = os.path.join(ckpt_dir, ckpt_name)

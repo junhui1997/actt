@@ -54,13 +54,13 @@ class DETRVAE(nn.Module):
         self.num_queries = num_queries
         self.camera_names = camera_names
         self.transformer = transformer
-        self.encoder = encoder
+        self.encoder = encoder # 这里只传近来了一个transformer encoder
         self.vq, self.vq_class, self.vq_dim = vq, vq_class, vq_dim
         self.state_dim, self.action_dim = state_dim, action_dim
         hidden_dim = transformer.d_model
         self.action_head = nn.Linear(hidden_dim, action_dim)
         self.is_pad_head = nn.Linear(hidden_dim, 1)
-        self.query_embed = nn.Embedding(num_queries, hidden_dim)
+        self.query_embed = nn.Embedding(num_queries, hidden_dim) # 这里我感觉后面没有随着网络变化而变化，只是调用了他的weight，把他当成一个常数矩阵来用的
         if backbones is not None:
             self.input_proj = nn.Conv2d(backbones[0].num_channels, hidden_dim, kernel_size=1)
             self.backbones = nn.ModuleList(backbones)
@@ -69,7 +69,7 @@ class DETRVAE(nn.Module):
             # input_dim = 14 + 7 # robot_state + env_state # env_state是指low_dim的情况，这里也没有做额外的优化 #q应该没进这个分支
             self.input_proj_robot_state = nn.Linear(state_dim, hidden_dim)
             self.input_proj_env_state = nn.Linear(7, hidden_dim)
-            self.pos = torch.nn.Embedding(2, hidden_dim)
+            self.pos = torch.nn.Embedding(2, hidden_dim) # 同self.query embed
             self.backbones = None
 
         # encoder extra parameters
@@ -154,7 +154,7 @@ class DETRVAE(nn.Module):
 
     def forward(self, qpos, image, env_state, actions=None, is_pad=None, vq_sample=None):
         """
-        qpos: batch, qpos_dim
+        qpos: batch, qpos_dim #只使用了当前一帧的状态量
         image: batch, num_cam, channel, height, width
         env_state: None
         actions: batch, seq, action_dim

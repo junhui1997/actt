@@ -69,7 +69,7 @@ class Transformer(nn.Module):
 
             additional_pos_embed = additional_pos_embed.unsqueeze(1).repeat(1, bs,
                                                                             1)  # seq, bs, dim # [2,512]->[2,bs,512]这里的parameter反映的就是张量的大小 #！！这里的2是learned position embedding for proprio and latent
-            pos_embed = torch.cat([additional_pos_embed, pos_embed], axis=0)
+            pos_embed = torch.cat([additional_pos_embed, pos_embed], axis=0) # pos embed构成是关于图像的embed（sine形式）以及使用了  两个分别对应joint和latent，这三者拼接起来
 
             addition_input = torch.stack([latent_input, proprio_input], axis=0)  # latent_input:[batch_size,dim] proprio_input:[batch_size,dim]->[2,batch_size,dim]
             src = torch.cat([addition_input, src], axis=0)
@@ -81,7 +81,7 @@ class Transformer(nn.Module):
             pos_embed = pos_embed.unsqueeze(1).repeat(1, bs, 1)
             query_embed = query_embed.unsqueeze(1).repeat(1, bs, 1)
 
-        tgt = torch.zeros_like(query_embed)  # [s,b,c]
+        tgt = torch.zeros_like(query_embed)  # [s,b,c] # 全是0，但是看后面decoder那里，target这里是加了一个query embedding，也是nn.embedding
         memory = self.encoder(src, src_key_padding_mask=mask, pos=pos_embed)  # [h*w+2,bs,c]
         hs = self.decoder(tgt, memory, memory_key_padding_mask=mask,
                           pos=pos_embed, query_pos=query_embed)  # [layer,chunk_size,bs,dim]

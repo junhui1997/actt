@@ -5,6 +5,7 @@ import argparse
 import matplotlib.pyplot as plt
 import h5py
 import gym
+import imageio
 
 from surrol.const import ROOT_DIR_PATH
 from constants import PUPPET_GRIPPER_POSITION_NORMALIZE_FN, SIM_TASK_CONFIGS, surgical_tasks_joint
@@ -41,7 +42,7 @@ def main(args):
     success = []
     episode_idx = 0
     while episode_idx < num_episodes:
-        onscreen_render = 0
+        onscreen_render = 1
         print(f'{episode_idx=}')
         print('Rollout out EE space scripted policy')
         # setup the environment
@@ -55,10 +56,17 @@ def main(args):
         ts = parse_ts(ts, env, is_joint=True, is_bi=is_bimanul)
         episode = []  # 和普通机械臂不一样，这里第一步就不加了因为没有相应的action
         # setup plotting
-        view = 'ecm'  # 对于我的写angle
+        view = 'ecm'  # ecm top front
         if onscreen_render:
             ax = plt.subplot()
             plt_img = ax.imshow(ts.observation['images'][view])
+            # #record image from different view
+            # image_ecm = ts.observation['images']['ecm']
+            # imageio.imwrite('ecm.jpg', image_ecm)
+            # image_front = ts.observation['images']['front']
+            # imageio.imwrite('front.jpg', image_front)
+            # image_top = ts.observation['images']['top']
+            # imageio.imwrite('top.jpg', image_top)
             plt.title("scripted")
             plt.ion()
         for step in range(episode_len):
