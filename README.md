@@ -1,32 +1,28 @@
-# Imitation Learning algorithms and Co-training for Mobile ALOHA
+# Imitation Learning algorithms for surgical task automation
 
 
-#### Project Website: https://mobile-aloha.github.io/
+#### 
 
-This repo contains the implementation of ACT, Diffusion Policy and VINN, together with 2 simulated environments:
-Transfer Cube and Bimanual Insertion. You can train and evaluate them in sim or real.
-For real, you would also need to install [Mobile ALOHA](https://github.com/MarkFzp/mobile-aloha). This repo is forked from the [ACT repo](https://github.com/tonyzhaozh/act).
+This repo contains the implementation of ACMT, ACT, Diffusion Policy and CNNMLP, it's designed to train surgical robots with imitation learning algorithm.
+
 
 ### Updates:
 You can find all scripted/human demo for simulated environments [here](https://drive.google.com/drive/folders/1gPR03v05S1xiInoVJn7G7VJ9pDCnxq9O?usp=share_link).
 
 
 ### Repo Structure
-- ``imitate_episodes.py`` Train and Evaluate ACT
-- ``policy.py`` An adaptor for ACT policy
-- ``detr`` Model definitions of ACT, modified from DETR
-- ``sim_env.py`` Mujoco + DM_Control environments with joint space control
-- ``ee_sim_env.py`` Mujoco + DM_Control environments with EE space control
-- ``scripted_policy.py`` Scripted policies for sim environments
+- ``imitate_episodes.py`` Train and Evaluate policy
+- ``record_surgical_episodes.py`` collect expert demonstration with delta control
+- ``record_surgical_episodes_joint.py`` collect expert demonstration with absolute joint control
 - ``constants.py`` Constants shared across files
 - ``utils.py`` Utils such as data loading and helper functions
-- ``visualize_episodes.py`` Save videos from a .hdf5 dataset
+
 
 
 ### Installation
 
-    conda create -n aloha python=3.8.10
-    conda activate aloha
+    conda create -n sur python=3.8.10
+    conda activate sur
     pip install torchvision
     pip install torch
     pip install pyquaternion
@@ -43,43 +39,26 @@ You can find all scripted/human demo for simulated environments [here](https://d
     pip install ipython
     cd act/detr && pip install -e .
 
-- also need to install https://github.com/ARISE-Initiative/robomimic/tree/r2d2 (note the r2d2 branch) for Diffusion Policy by `pip install -e .`
-
+- also need to install https://github.com/ARISE-Initiative/robomimic/tree/r2d2 (note the r2d2 branch) for Diffusion Policy by `pip install -e .`(clone this into the main directory of project)
+- also need to install https://github.com/med-air/SurRoL/tree/SurRoL-v2 for pybullet surgical environment by `pip install -e .` (clone this outside the main directory and just install in conda env)
+- also need to install https://github.com/state-spaces/mamba/tree/main
+- edit the gym in conda env by adding `import surrol.gym` 
 ### Example Usages
 
 To set up a new terminal, run:
 
-    conda activate aloha
-    cd <path to act repo>
+    conda activate sur
+    cd <path to sur repo>
 
 ### Simulated experiments (LEGACY table-top ALOHA environments)
-
-We use ``sim_transfer_cube_scripted`` task in the examples below. Another option is ``sim_insertion_scripted``.
-To generated 50 episodes of scripted data, run:
-
-    python3 record_sim_episodes.py --task_name sim_transfer_cube_scripted --dataset_dir <data save dir> --num_episodes 50
-
-To can add the flag ``--onscreen_render`` to see real-time rendering.
-To visualize the simulated episodes after it is collected, run
-
-    python3 visualize_episodes.py --dataset_dir <data save dir> --episode_idx 0
-
-Note: to visualize data from the mobile-aloha hardware, use the visualize_episodes.py from https://github.com/MarkFzp/mobile-aloha
-
-To train ACT:
+To collect data
+    
+    # Collect expert demonstration
+    python3 --task_name NeedlePick-v0 --dataset_dir /dir --num_episodes 100 --onscreen_render
+To train ACMT follow the scripts in folder and modify the mamba enable flag in `transformer.py`:
     
     # Transfer Cube task
-    python3 imitate_episodes.py --task_name sim_transfer_cube_scripted --ckpt_dir <ckpt dir> --policy_class ACT --kl_weight 10 --chunk_size 100 --hidden_dim 512 --batch_size 8 --dim_feedforward 3200 --num_epochs 2000  --lr 1e-5 --seed 0
+    python3 imitate_episodes.py --task_name NeedlePick-v0 --ckpt_dir <ckpt dir> --policy_class ACT --kl_weight 10 --chunk_size 100 --hidden_dim 512 --batch_size 6 --dim_feedforward 3200 --num_epochs 100000  --lr 1e-5 --seed 0 --is_surgical --is_joint
 
 
-To evaluate the policy, run the same command but add ``--eval``. This loads the best validation checkpoint.
-The success rate should be around 90% for transfer cube, and around 50% for insertion.
-To enable temporal ensembling, add flag ``--temporal_agg``.
-Videos will be saved to ``<ckpt_dir>`` for each rollout.
-You can also add ``--onscreen_render`` to see real-time rendering during evaluation.
 
-For real-world data where things can be harder to model, train for at least 5000 epochs or 3-4 times the length after the loss has plateaued.
-Please refer to [tuning tips](https://docs.google.com/document/d/1FVIZfoALXg_ZkYKaYVh-qOlaXveq5CtvJHXkY25eYhs/edit?usp=sharing) for more info.
-
-### [ACT tuning tips](https://docs.google.com/document/d/1FVIZfoALXg_ZkYKaYVh-qOlaXveq5CtvJHXkY25eYhs/edit?usp=sharing)
-TL;DR: if your ACT policy is jerky or pauses in the middle of an episode, just train for longer! Success rate and smoothness can improve way after loss plateaus.

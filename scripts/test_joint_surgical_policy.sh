@@ -43,36 +43,36 @@ cd ..
 
 for model in ACT
 do
-  for task_name in  NeedlePick-v0
+  for task_name in  PegTransfer-v0
 do
-  for kl_weight in  10 1000
+  for kl_weight in  200
 do
-  for chunk_size in 20
+  for chunk_size in 30
 do
-  for seed in 0
+  for seed in 42 66
 do
 python -u imitate_episodes.py \
---task_name $task_name --ckpt_dir checkpoint_m/$model/$task_name-kl$kl_weight/ --policy_class $model --kl_weight $kl_weight --chunk_size $chunk_size --hidden_dim 512 --batch_size 6 --dim_feedforward 3200 --state_dim 7 --action_dim 7 --num_steps 120000 --lr 75e-7 --seed $seed --is_surgical  --eval_every 2500 --save_every 5000 --temporal_agg --is_joint
+--task_name $task_name --ckpt_dir checkpoint_m/$model/$task_name-kl$kl_weight/ --policy_class $model --kl_weight $kl_weight --chunk_size $chunk_size --hidden_dim 512 --batch_size 6 --dim_feedforward 3200 --state_dim 7 --action_dim 7 --num_steps 125000 --lr 75e-7 --seed $seed --is_surgical  --eval_every 2500 --save_every 5000 --temporal_agg --is_joint
 done
 done
 done
 done
 done
 
-for model in ACT
-do
-  for task_name in  NeedlePick-v0
-do
-  for kl_weight in  200
-do
-  for chunk_size in 5 10 30
-do
-  for seed in 0
-do
-python -u imitate_episodes.py \
---task_name $task_name --ckpt_dir checkpoint_m/$model/$task_name-ck$chunk_size/ --policy_class $model --kl_weight $kl_weight --chunk_size $chunk_size --hidden_dim 512 --batch_size 6 --dim_feedforward 3200 --state_dim 7 --action_dim 7 --num_steps 120000 --lr 75e-7 --seed $seed --is_surgical  --eval_every 2500 --save_every 5000 --temporal_agg --is_joint
-done
-done
-done
-done
-done
+#for model in ACT
+#do
+#  for task_name in  NeedlePick-v0
+#do
+#  for kl_weight in  200
+#do
+#  for chunk_size in 5 10 30
+#do
+#  for seed in 0
+#do
+#python -u imitate_episodes.py \
+#--task_name $task_name --ckpt_dir checkpoint_m/$model/$task_name-ck$chunk_size/ --policy_class $model --kl_weight $kl_weight --chunk_size $chunk_size --hidden_dim 512 --batch_size 6 --dim_feedforward 3200 --state_dim 7 --action_dim 7 --num_steps 120000 --lr 75e-7 --seed $seed --is_surgical  --eval_every 2500 --save_every 5000 --temporal_agg --is_joint
+#done
+#done
+#done
+#done
+#done

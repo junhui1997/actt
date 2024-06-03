@@ -523,6 +523,10 @@ class time_step:
 
 def parse_ts(ts, env, action=None, is_joint=False, is_bi=False):
     new_ts = time_step(OrderedDict(), -1)
+    if is_bi:
+        state_dim = 14
+    else:
+        state_dim = 7
     # 使用关节空间进行训练
     if is_joint:
         # 使用关节空间进行训练时候qpos即是指令也是观测值， 不需要使用action这条信息
@@ -539,10 +543,6 @@ def parse_ts(ts, env, action=None, is_joint=False, is_bi=False):
             else:
                 new_ts.observation['qpos'] = env.psm1.get_current_joint_position() + [action[-1]]
     else:
-        if is_bi:
-            state_dim = 14
-        else:
-            state_dim = 7
         if isinstance(ts, dict):
             new_ts.reward = 0
             new_ts.observation['qpos'] = ts['observation'][:state_dim]
@@ -558,6 +558,12 @@ def parse_ts(ts, env, action=None, is_joint=False, is_bi=False):
     new_ts.observation['images']['ecm'] = ecm_img
     new_ts.observation['images']['top'] = top_img
     new_ts.observation['images']['front'] = front_img
+    # collect traj: robot state+reward
+    if isinstance(ts, dict):
+        new_ts.observation['traj'] = np.append(ts['observation'][:state_dim], new_ts.reward)
+    else:
+        new_ts.observation['traj'] = np.append(ts[0]['observation'][:state_dim], new_ts.reward)
+
     # new_ts.observation['images']['human'] = human_img
     return new_ts
 

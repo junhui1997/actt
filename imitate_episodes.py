@@ -31,8 +31,8 @@ import imageio
 from sim_env import BOX_POSE
 torch.cuda.set_device(0)  # 这样cuda就会只分配一个gpu了，不然会均分到两个上面去
 
-#os.environ["WANDB_DISABLED"] = "true"
-os.environ["WANDB_API_KEY"] = "e7a9493a938ca7efec0cb4af510f601a70b38160"
+os.environ["WANDB_DISABLED"] = "true"
+#os.environ["WANDB_API_KEY"] = "e7a9493a938ca7efec0cb4af510f601a70b38160"
 
 import IPython
 
@@ -171,11 +171,14 @@ def main(args):
     # 如果处于eval模式则不进入训练，直接使用policy_last,然后退出
     if is_eval:
         print('eval mode')
-        # ckpt_names = [f'policy_step_72500_seed_0.ckpt'] #policy_last
-        ckpt_names = ['policy_step_{}_seed_0.ckpt'.format(str(i*2500)) for i in range(20, 40)]
+        #ckpt_names = [f'policy_step_72500_seed_0.ckpt']   # pick
+        #ckpt_names = [f'policy_step_117500_seed_0.ckpt']  # peg
+        #ckpt_names = [f'policy_step_7500_seed_0.ckpt']    # regrasp
+        ckpt_names = [f'policy_step_110000_seed_0.ckpt']  # bipeg
+        # ckpt_names = ['policy_step_{}_seed_0.ckpt'.format(str(i*2500)) for i in range(20, 40)]
         results = []
         for ckpt_name in ckpt_names:
-            success_rate, avg_return = eval_bc(config, ckpt_name, save_episode=True, num_rollouts=10)
+            success_rate, avg_return = eval_bc(config, ckpt_name, save_episode=True, num_rollouts=20)
             # wandb.log({'success_rate': success_rate, 'avg_return': avg_return})
             results.append([ckpt_name, success_rate, avg_return])
 
@@ -250,7 +253,7 @@ def get_image(ts, camera_names, rand_crop_resize=False):
 
 
 def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
-    set_seed(1000)
+    set_seed(1000)  # eval时候设定了固定的seed
     ckpt_dir = config['ckpt_dir']
     state_dim = config['state_dim']
     real_robot = config['real_robot']
@@ -340,6 +343,7 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
         from sim_env import make_sim_env
         if is_surgical:
             env = gym.make(task_name)
+            #env.seed(1000)  # useless after uploading
             env_max_reward = surgical_config[task_name]['max_reward']
         else:
             env = make_sim_env(task_name)
@@ -383,6 +387,8 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
         ts = env.reset()
         if is_surgical:
             ts = parse_ts(ts, env, is_joint=is_surgical_joint, is_bi=is_bimanul)
+            traj_list = []
+            traj_list.append(ts.observation['traj'])
         ### onscreen render
         if onscreen_render:
             ax = plt.subplot()
@@ -531,11 +537,12 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
                     ts = env.step(target_qpos, base_action)
                 else:
                     if is_surgical and is_surgical_joint:
-                        ts = env.step_ee(target_qpos)
+                        ts = env.step_ee(target_qpos)  # 使用joint时候单独写了一个step
                     else:
                         ts = env.step(target_qpos)
                     if is_surgical:
                         ts = parse_ts(ts, env, target_qpos, is_joint=is_surgical_joint, is_bi=is_bimanul)
+                        traj_list.append(ts.observation['traj'])
                 # print('step env: ', time.time() - time5)
 
                 ### for visualization
@@ -553,6 +560,9 @@ def eval_bc(config, ckpt_name, save_episode=True, num_rollouts=50):
                 # else:
                 #     culmulated_delay = max(0, culmulated_delay - (DT - duration))
 
+            if is_surgical and 1:
+                with open('traj/{}_{}{}.pkl'.format(config['task_name'], rollout_id, '' if temporal_agg else 'n'), 'wb') as f:
+                    pickle.dump(traj_list, f)
             print(f'Avg fps {max_timesteps / (time.time() - time0)}')
             plt.close()
         if real_robot:
@@ -668,8 +678,14 @@ def train_bc(train_dataloader, val_dataloader, config):
                 summary_string += f'{k}: {v.item():.3f} '
             print(summary_string)
 
+        if config['task_name'] == 'PegTransfer-v0' or config['task_name'] =='NeedlePick-v0':
+            start_step = 50000
+        elif config['task_name'] == 'BiPegTransfer-v0':
+            start_step = 70000
+        else:
+            start_step = 0
         # evaluation
-        if (step > 50000) and (step % eval_every == 0):
+        if (step > start_step) and (step % eval_every == 0):
             # first save then eval
             ckpt_name = f'policy_step_{step}_seed_{seed}.ckpt'
             ckpt_path = os.path.join(ckpt_dir, ckpt_name)
@@ -736,7 +752,7 @@ if __name__ == '__main__':
     parser.add_argument('--prediction_len', action='store', type=int)
 
     # for ACT
-    parser.add_argument('--kl_weight', action='store', type=int, help='KL Weight', required=False)
+    parser.add_argument('--kl_weight', action='store', type=float, help='KL Weight', required=False)
     parser.add_argument('--chunk_size', action='store', type=int, help='chunk_size', required=False)
     parser.add_argument('--hidden_dim', action='store', type=int, help='hidden_dim', required=False)
     parser.add_argument('--dim_feedforward', action='store', type=int, help='dim_feedforward', required=False)
