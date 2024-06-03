@@ -150,3 +150,4 @@ play.ipynb
 checkpoint_m/
 dataset_m/
 wandb/
+traj/
